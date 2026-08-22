@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Roboto:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Alfa Slab One", Georgia, serif;
 
   --color-ink: #1d3557;
@@ -119,5 +119,55 @@
 
   .eyebrow {
     @apply text-xs font-bold uppercase tracking-[0.2em] text-signal;
+  }
+
+  .auth-page {
+    @apply flex min-h-screen flex-col bg-surface lg:flex-row;
+  }
+
+  .auth-image-overlay {
+    @apply absolute inset-0 bg-ink/50;
+  }
+
+  .auth-brand,
+  .auth-quote,
+  .auth-heading {
+    @apply font-display;
+  }
+
+  .auth-heading {
+    @apply mb-2 text-[28px] leading-tight text-content sm:text-[32px];
+  }
+
+  .auth-label {
+    @apply mb-1.5 ml-1 block text-xs font-medium text-content-muted;
+  }
+
+  .auth-input {
+    @apply w-full rounded-control border border-stroke bg-white px-4 py-3.5 text-[15px] text-content outline-none transition-all placeholder:text-content-muted/50 focus:border-primary focus:ring-2 focus:ring-primary/15;
+  }
+
+  .auth-icon-button {
+    @apply absolute right-4 top-1/2 -translate-y-1/2 text-content-muted/60 transition-colors hover:text-primary;
+  }
+
+  .auth-toggle {
+    @apply relative h-6 w-12 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30;
+  }
+
+  .auth-submit {
+    @apply mb-5 w-full rounded-control bg-primary py-4 text-[15px] font-bold text-white shadow-md shadow-primary/20 transition-all duration-200 hover:bg-primary-hover active:scale-[0.99];
+  }
+
+  .auth-provider-button {
+    @apply mb-4 flex w-full items-center justify-center gap-3 rounded-control border border-stroke py-3.5 text-[14px] font-medium text-content transition-all hover:border-secondary hover:bg-surface-tinted;
+  }
+
+  .auth-link {
+    @apply font-semibold text-primary transition-colors hover:text-primary-hover;
+  }
+
+  .auth-divider {
+    @apply h-px flex-1 bg-stroke;
   }
 }

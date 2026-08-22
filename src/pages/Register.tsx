@@ -22,11 +22,11 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+    <div className="auth-page">
       {/* ── MOBILE HERO IMAGE ── */}
       <div className="lg:hidden relative h-56 sm:h-64 flex-shrink-0 overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-[#1a0a3a]"
+          className="absolute inset-0 bg-cover bg-center bg-ink"
           style={{ backgroundImage: `url('${panelImg}')` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-transparent" />
@@ -39,8 +39,7 @@ export default function Register() {
             Volver
           </Link>
           <span
-            className="font-black text-white border-2 border-white px-2 py-0.5 text-lg leading-none tracking-tight"
-            style={{ fontFamily: "'Sora', sans-serif" }}
+            className="auth-brand border-2 border-white px-2 py-0.5 text-lg leading-none tracking-tight text-white"
           >
             Kernel Panic
           </span>
@@ -54,12 +53,11 @@ export default function Register() {
           style={{ backgroundImage: `url('${panelImg}')` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80" />
-        <div className="absolute inset-0 bg-[#1a0a3a]/40" />
+        <div className="auth-image-overlay" />
         <div className="relative z-10 p-8">
           <Link to="/landing" className="flex items-center gap-3 group">
             <span
-              className="font-black text-white border-2 border-white px-2 py-0.5 text-xl leading-none tracking-tight select-none"
-              style={{ fontFamily: "'Sora', sans-serif" }}
+              className="auth-brand select-none border-2 border-white px-2 py-0.5 text-xl leading-none tracking-tight text-white"
             >
               Kernel Panic
             </span>
@@ -67,8 +65,7 @@ export default function Register() {
         </div>
         <div className="relative z-10 mt-auto p-8 pb-10">
           <blockquote
-            className="text-white font-bold text-2xl xl:text-3xl leading-snug mb-5"
-            style={{ fontFamily: "'Sora', sans-serif" }}
+            className="auth-quote mb-5 text-2xl leading-snug text-white xl:text-3xl"
           >
             "Empece a invertir sin complicaciones desde el primer dia."
           </blockquote>
@@ -85,10 +82,7 @@ export default function Register() {
           <div className="w-full max-w-[420px]">
             {/* Heading */}
             <div className="text-center mb-8">
-              <h1
-                className="font-bold text-[#0a0a0f] text-[28px] sm:text-[32px] mb-2 leading-tight"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
+              <h1 className="auth-heading">
                 Crea tu cuenta en Kernel Panic
               </h1>
             </div>
@@ -96,7 +90,7 @@ export default function Register() {
             <form onSubmit={handleSubmit}>
               {/* Name field */}
               <div className="mb-4">
-                <label className="block text-[#888899] text-xs font-medium mb-1.5 ml-1">
+                <label className="auth-label">
                   Nombre completo
                 </label>
                 <input
@@ -104,14 +98,14 @@ export default function Register() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full border border-[#e0e0ee] rounded-xl px-4 py-3.5 text-[#0a0a0f] text-[15px] bg-white outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/15 transition-all placeholder:text-[#c0c0d0]"
+                  className="auth-input"
                   placeholder="Tu nombre"
                 />
               </div>
 
               {/* Email field */}
               <div className="mb-4">
-                <label className="block text-[#888899] text-xs font-medium mb-1.5 ml-1">
+                <label className="auth-label">
                   Correo electronico
                 </label>
                 <input
@@ -119,14 +113,14 @@ export default function Register() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-[#e0e0ee] rounded-xl px-4 py-3.5 text-[#0a0a0f] text-[15px] bg-white outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/15 transition-all placeholder:text-[#c0c0d0]"
+                  className="auth-input"
                   placeholder="tu@correo.com"
                 />
               </div>
 
               {/* Password field */}
               <div className="mb-4">
-                <label className="block text-[#888899] text-xs font-medium mb-1.5 ml-1">
+                <label className="auth-label">
                   Contrasena
                 </label>
                 <div className="relative">
@@ -135,13 +129,13 @@ export default function Register() {
                     required
                     value={passRaw}
                     onChange={(e) => setPassRaw(e.target.value)}
-                    className="w-full border border-[#e0e0ee] rounded-xl px-4 py-3.5 text-[#0a0a0f] text-[15px] bg-white outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/15 pr-12 transition-all placeholder:text-[#c0c0d0]"
+                    className="auth-input pr-12"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#aaaacc] hover:text-[#6c63ff] transition-colors"
+                    className="auth-icon-button"
                     aria-label={showPass ? 'Ocultar contrasena' : 'Mostrar contrasena'}
                   >
                     {showPass ? (
@@ -160,7 +154,7 @@ export default function Register() {
 
               {/* Confirm password field */}
               <div className="mb-5">
-                <label className="block text-[#888899] text-xs font-medium mb-1.5 ml-1">
+                <label className="auth-label">
                   Confirmar contrasena
                 </label>
                 <div className="relative">
@@ -169,13 +163,13 @@ export default function Register() {
                     required
                     value={confirmPass}
                     onChange={(e) => setConfirmPass(e.target.value)}
-                    className="w-full border border-[#e0e0ee] rounded-xl px-4 py-3.5 text-[#0a0a0f] text-[15px] bg-white outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/15 pr-12 transition-all placeholder:text-[#c0c0d0]"
+                    className="auth-input pr-12"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#aaaacc] hover:text-[#6c63ff] transition-colors"
+                    className="auth-icon-button"
                     aria-label={showConfirm ? 'Ocultar contrasena' : 'Mostrar contrasena'}
                   >
                     {showConfirm ? (
@@ -194,12 +188,12 @@ export default function Register() {
 
               {/* Terms toggle */}
               <div className="flex items-center justify-between mb-6">
-                <span className="text-[#555566] text-[14px]">Acepto los terminos y condiciones</span>
+                <span className="text-[14px] text-content-muted">Acepto los terminos y condiciones</span>
                 <button
                   type="button"
                   onClick={() => setAcceptTerms(!acceptTerms)}
-                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#6c63ff]/30 ${
-                    acceptTerms ? 'bg-[#6c63ff]' : 'bg-[#d0d0e0]'
+                  className={`auth-toggle ${
+                    acceptTerms ? 'bg-primary' : 'bg-stroke'
                   }`}
                   role="switch"
                   aria-checked={acceptTerms}
@@ -215,7 +209,7 @@ export default function Register() {
               {/* Register button */}
               <button
                 type="submit"
-                className="w-full bg-[#6c63ff] hover:bg-[#5b54e8] active:scale-[0.99] text-white font-bold py-4 rounded-xl text-[15px] transition-all duration-200 shadow-md shadow-[#6c63ff]/20 mb-5"
+                className="auth-submit"
               >
                 Crear cuenta
               </button>
@@ -223,13 +217,13 @@ export default function Register() {
 
             {/* OR divider */}
             <div className="flex items-center gap-4 mb-5">
-              <div className="flex-1 h-px bg-[#e8e8f0]" />
-              <span className="text-[#aaaacc] text-[13px] font-medium">O</span>
-              <div className="flex-1 h-px bg-[#e8e8f0]" />
+              <div className="auth-divider" />
+              <span className="text-[13px] font-medium text-content-muted">O</span>
+              <div className="auth-divider" />
             </div>
 
             {/* Google button */}
-            <button className="w-full flex items-center justify-center gap-3 border border-[#e0e0ee] hover:border-[#c0c0d0] hover:bg-[#fafafa] text-[#0a0a0f] font-medium py-3.5 rounded-xl text-[14px] transition-all mb-4">
+            <button className="auth-provider-button">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -240,7 +234,7 @@ export default function Register() {
             </button>
 
             {/* Apple button (mobile only) */}
-            <button className="sm:hidden w-full flex items-center justify-center gap-3 border border-[#e0e0ee] hover:border-[#c0c0d0] hover:bg-[#fafafa] text-[#0a0a0f] font-medium py-3.5 rounded-xl text-[14px] transition-all mb-4">
+            <button className="auth-provider-button sm:hidden">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.07c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.32zM12.03 7c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
               </svg>
@@ -248,9 +242,9 @@ export default function Register() {
             </button>
 
             {/* Sign in link */}
-            <p className="text-center text-[#888899] text-[13px]">
+            <p className="text-center text-[13px] text-content-muted">
               Ya tienes cuenta?{' '}
-              <Link to="/login" className="text-[#6c63ff] font-semibold hover:text-[#5b54e8] transition-colors">
+              <Link to="/login" className="auth-link">
                 Inicia sesion
               </Link>
             </p>
