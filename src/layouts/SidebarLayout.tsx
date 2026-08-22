@@ -18,23 +18,23 @@ export default function SidebarLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex min-h-screen bg-surface">
       {/* Sidebar */}
       <aside
-        className={`flex flex-col border-r border-gray-200 bg-white transition-all duration-200 dark:border-gray-800 dark:bg-gray-900 ${
+        className={`flex flex-col border-r border-stroke bg-ink text-cream transition-all duration-200 ${
           collapsed ? 'w-16' : 'w-60'
         }`}
       >
         {/* Logo + collapse toggle */}
-        <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
+        <div className="flex h-14 items-center justify-between border-b border-ocean px-4">
           {!collapsed && (
-            <span className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+            <span className="font-display text-lg text-cream">
               Hack-a-ton
             </span>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-sky transition-colors hover:bg-ocean hover:text-white"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -59,8 +59,8 @@ export default function SidebarLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
+                    ? 'bg-signal text-white'
+                    : 'text-sky hover:bg-ocean hover:text-white'
                 }`
               }
             >
@@ -71,10 +71,10 @@ export default function SidebarLayout() {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-gray-200 p-2 dark:border-gray-800">
+        <div className="border-t border-ocean p-2">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors"
+            className="flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium text-sky transition-colors hover:bg-ocean hover:text-white"
           >
             <LogoutIcon className="h-5 w-5 shrink-0" />
             {!collapsed && <span>Log out</span>}
@@ -85,10 +85,10 @@ export default function SidebarLayout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col">
         {/* Top bar */}
-        <header className="flex h-14 items-center border-b border-gray-200 bg-white px-6 dark:border-gray-800 dark:bg-gray-900">
+        <header className="flex h-14 items-center border-b border-stroke bg-surface-raised px-6">
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{user?.name}</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
+            <span className="text-sm text-content-muted">{user?.name}</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-signal text-xs font-semibold text-white">
               {user?.name?.charAt(0).toUpperCase() ?? '?'}
             </div>
           </div>

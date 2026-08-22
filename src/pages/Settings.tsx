@@ -13,16 +13,16 @@ export default function Settings() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+      <h1 className="text-3xl text-content">
         Settings
       </h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-2 text-sm text-content-muted">
         Manage your account preferences.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 max-w-lg space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="name" className="form-label">
             Name
           </label>
           <input
@@ -30,12 +30,12 @@ export default function Settings() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="form-input"
           />
         </div>
 
         <div>
-          <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="settings-email" className="form-label">
             Email
           </label>
           <input
@@ -43,14 +43,14 @@ export default function Settings() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="form-input"
           />
         </div>
 
-        <div className="border-t border-gray-200 pt-6 dark:border-gray-800">
+        <div className="border-t border-stroke pt-6">
           <button
             type="submit"
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+            className="btn-primary"
           >
             Save changes
           </button>
