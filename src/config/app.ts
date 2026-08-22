@@ -12,6 +12,7 @@ export const appConfig = {
     demo: '/demo',
     login: '/login',
     register: '/register',
+    terms: '/terms',
     dashboard: '/dashboard',
   },
 } as const

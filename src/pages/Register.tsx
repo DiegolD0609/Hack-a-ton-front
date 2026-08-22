@@ -88,8 +88,9 @@ export default function Register() {
         />
 
         <AuthToggle
+          ariaLabel="Aceptar términos y condiciones"
           checked={acceptedTerms}
-          label="Acepto los términos y condiciones"
+          label={<>Acepto los <Link to={appConfig.routes.terms} className="auth-link">términos y condiciones</Link></>}
           onChange={setAcceptedTerms}
           error={errors.terms}
         />

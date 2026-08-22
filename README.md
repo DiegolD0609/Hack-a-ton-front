@@ -134,9 +134,21 @@ Vite exposes environment variables prefixed with `VITE_` to client code. Create 
 
 ```env
 VITE_API_URL=https://api.example.com
+VITE_AUTH_MODE=mock
 ```
 
 Access them in code via `import.meta.env.VITE_API_URL`. See the [Vite docs on env variables](https://vite.dev/guide/env-and-mode) for more details.
+
+Set `VITE_AUTH_MODE=mock` for a backend-free presentation or `VITE_AUTH_MODE=api` to use the endpoints configured under `VITE_API_URL`.
+
+## Demo and quality checks
+
+- `/demo` provides a guided, preloaded flow that does not require authentication or a backend.
+- `npm test` runs the route, validation, and session-storage test suite.
+- `npm run lint` checks source quality.
+- `npm run build` type-checks and creates the production bundle.
+
+Every pull request and push to `main` runs these checks through GitHub Actions.
 
 ## Tech Stack
 

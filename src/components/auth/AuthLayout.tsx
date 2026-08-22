@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
+import panelImgLarge from '@/utils/public/rafa-login-1086.webp'
+import panelImgSmall from '@/utils/public/rafa-login-720.webp'
 import panelImg from '@/utils/public/rafa-login.jpg'
 
 interface AuthLayoutProps {
@@ -56,10 +58,16 @@ export default function AuthLayout({ children, heading, quote }: AuthLayoutProps
 
 function AuthImage() {
   return (
-    <div
-      className="absolute inset-0 bg-ink bg-cover bg-center"
-      style={{ backgroundImage: `url('${panelImg}')` }}
-    />
+    <picture className="absolute inset-0 bg-ink">
+      <source media="(max-width: 1023px)" srcSet={panelImgSmall} type="image/webp" />
+      <source srcSet={panelImgLarge} type="image/webp" />
+      <img
+        src={panelImg}
+        alt=""
+        aria-hidden="true"
+        className="h-full w-full object-cover object-center"
+      />
+    </picture>
   )
 }
 

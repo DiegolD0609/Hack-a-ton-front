@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { PrivateRoute, PublicRoute } from '@/middleware/AuthGuard'
 import SidebarLayout from '@/layouts/SidebarLayout'
-import { Landing, Login, Register, Dashboard, Demo, Settings, NotFound } from '@/pages'
+import { Landing, Login, Register, Dashboard, Demo, Settings, Terms, NotFound } from '@/pages'
 
 /**
  * Central router — all route definitions live here.
@@ -23,6 +23,7 @@ export default function AppRouter() {
       {/* Public pages — accessible to everyone */}
       <Route path="/landing" element={<Landing />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Auth pages — only when NOT logged in */}
       <Route element={<PublicRoute />}>
