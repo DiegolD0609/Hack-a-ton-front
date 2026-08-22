@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { appConfig } from '@/config/app'
 import panelImg from '@/utils/public/rafa-login.jpg'
 
 interface AuthLayoutProps {
@@ -34,8 +35,8 @@ export default function AuthLayout({ children, heading, quote }: AuthLayoutProps
           <blockquote className="auth-quote mb-5 text-2xl leading-snug text-white xl:text-3xl">
             “{quote}”
           </blockquote>
-          <p className="text-[15px] font-semibold text-white">Karmadesu</p>
-          <p className="text-[13px] text-white/70">Desarrollador — Kernel Panic</p>
+          <p className="text-[15px] font-semibold text-white">{appConfig.team.testimonialAuthor}</p>
+          <p className="text-[13px] text-white/70">{appConfig.team.testimonialRole} — {appConfig.team.name}</p>
         </div>
       </aside>
 
@@ -76,7 +77,7 @@ function BackLink() {
 function Brand({ className }: { className: string }) {
   return (
     <span className={`auth-brand select-none border-2 border-white px-2 py-0.5 leading-none tracking-tight text-white ${className}`}>
-      Kernel Panic
+      {appConfig.name}
     </span>
   )
 }

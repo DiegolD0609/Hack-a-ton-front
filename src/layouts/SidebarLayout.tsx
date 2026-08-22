@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { appConfig } from '@/config/app'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
@@ -29,7 +30,7 @@ export default function SidebarLayout() {
         <div className="flex h-14 items-center justify-between border-b border-ocean px-4">
           {!collapsed && (
             <span className="font-display text-lg text-cream">
-              Hack-a-ton
+              {appConfig.name}
             </span>
           )}
           <button

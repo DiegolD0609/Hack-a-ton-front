@@ -5,6 +5,7 @@ import { AuthField, AuthLayout, AuthToggle, PasswordField, SocialAuthButtons } f
 import { validateLogin } from '@/features/auth'
 import type { FieldErrors, LoginField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
+import { appConfig } from '@/config/app'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -37,7 +38,7 @@ export default function Login() {
 
   return (
     <AuthLayout
-      heading="Bienvenido de vuelta a Kernel Panic"
+      heading={`Bienvenido de vuelta a ${appConfig.name}`}
       quote="La plataforma que mi equipo y yo necesitábamos para crecer."
     >
       <form onSubmit={handleSubmit} noValidate>

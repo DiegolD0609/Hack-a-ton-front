@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { appConfig } from '@/config/app'
 
 const features = [
   {
@@ -25,7 +26,7 @@ export default function Landing() {
             to="/"
             className="font-display text-lg sm:text-xl"
           >
-            Kernel Panic
+            {appConfig.name}
           </Link>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -69,12 +70,12 @@ export default function Landing() {
               Start Building
             </Link>
 
-            <a
-              href="#features"
+            <Link
+              to={appConfig.routes.demo}
               className="btn-secondary w-full sm:w-auto"
             >
               Learn More
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -115,7 +116,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-stroke bg-ink text-cream">
         <div className="mx-auto max-w-6xl px-4 py-6 text-center text-sm sm:px-6 sm:py-8 lg:px-8">
-          Built by Kernel Panic
+          Built by {appConfig.team.name}
         </div>
       </footer>
     </div>

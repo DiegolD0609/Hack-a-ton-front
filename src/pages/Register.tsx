@@ -5,6 +5,7 @@ import { AuthField, AuthLayout, AuthToggle, PasswordField, SocialAuthButtons } f
 import { validateRegister } from '@/features/auth'
 import type { FieldErrors, RegisterField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
+import { appConfig } from '@/config/app'
 
 export default function Register() {
   const [name, setName] = useState('')
@@ -39,7 +40,7 @@ export default function Register() {
 
   return (
     <AuthLayout
-      heading="Crea tu cuenta en Kernel Panic"
+      heading={`Crea tu cuenta en ${appConfig.name}`}
       quote="Empecé a invertir sin complicaciones desde el primer día."
     >
       <form onSubmit={handleSubmit} noValidate>
