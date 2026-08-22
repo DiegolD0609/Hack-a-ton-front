@@ -1,211 +1,87 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthField, AuthLayout, AuthToggle, PasswordField, SocialAuthButtons } from '@/components/auth'
+import { validateLogin } from '@/features/auth'
+import type { FieldErrors, LoginField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
-import panelImg from '@/utils/public/rafa-login.jpg'
 
 export default function Login() {
   const [email, setEmail] = useState('')
-  const [passRaw, setPassRaw] = useState('')
+  const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
-  const [showPass, setShowPass] = useState(false)
+  const [errors, setErrors] = useState<FieldErrors<LoginField>>({})
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    await login(email, passRaw)
-    navigate('/dashboard')
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    const nextErrors = validateLogin(email, password)
+    setErrors(nextErrors)
+    setFormError('')
+
+    if (Object.keys(nextErrors).length > 0) return
+
+    try {
+      setIsSubmitting(true)
+      await login(email.trim(), password, remember)
+      navigate('/dashboard')
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'No fue posible iniciar sesión.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <div className="auth-page">
-      {/* ── MOBILE HERO IMAGE ── */}
-      <div className="lg:hidden relative h-56 sm:h-64 flex-shrink-0 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-ink"
-          style={{ backgroundImage: `url('${panelImg}')` }}
+    <AuthLayout
+      heading="Bienvenido de vuelta a Kernel Panic"
+      quote="La plataforma que mi equipo y yo necesitábamos para crecer."
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <AuthField
+          id="login-email"
+          type="email"
+          autoComplete="email"
+          required
+          label="Correo electrónico"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={errors.email}
+          placeholder="tu@correo.com"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent" />
-        <div className="relative z-10 flex items-center justify-between px-5 pt-5">
-          <Link to="/landing" className="flex items-center gap-1.5 text-white text-sm font-semibold drop-shadow">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Volver
-          </Link>
-          <span
-            className="auth-brand border-2 border-white px-2 py-0.5 text-lg leading-none tracking-tight text-white"
-          >
-            Kernel Panic
-          </span>
-        </div>
-      </div>
-
-      {/* ── LEFT PANEL (desktop only) ── */}
-      <div className="hidden lg:flex lg:w-[38%] xl:w-[35%] relative flex-col overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('${panelImg}')` }}
+        <PasswordField
+          id="login-password"
+          autoComplete="current-password"
+          required
+          label="Contraseña"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          error={errors.password}
+          placeholder="••••••••"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80" />
-        <div className="auth-image-overlay" />
-        <div className="relative z-10 p-8">
-          <Link to="/landing" className="flex items-center gap-3 group">
-            <span
-              className="auth-brand select-none border-2 border-white px-2 py-0.5 text-xl leading-none tracking-tight text-white"
-            >
-              Kernel Panic
-            </span>
-          </Link>
+
+        <div className="mb-5">
+          <button type="button" className="auth-link text-[13px]">¿Olvidaste tu contraseña?</button>
         </div>
-        <div className="relative z-10 mt-auto p-8 pb-10">
-          <blockquote
-            className="auth-quote mb-5 text-2xl leading-snug text-white xl:text-3xl"
-          >
-            "La plataforma que mi equipo y yo necesitabamos para crecer."
-          </blockquote>
-          <div>
-            <p className="text-white font-semibold text-[15px]">Karmadesu</p>
-            <p className="text-white/60 text-[13px]">Desarrollador — Kernel Panic</p>
-          </div>
-        </div>
-      </div>
 
-      {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 flex items-center justify-center px-6 pt-4 pb-12 lg:py-12">
-          <div className="w-full max-w-[420px]">
-            {/* Heading */}
-            <div className="text-center mb-8">
-              <h1 className="auth-heading">
-                Bienvenido de vuelta a Kernel Panic
-              </h1>
-            </div>
+        <AuthToggle checked={remember} label="Recordar mis datos de acceso" onChange={setRemember} />
 
-            <form onSubmit={handleSubmit}>
-              {/* Email field */}
-              <div className="mb-4">
-                <label className="auth-label">
-                  Correo electronico
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="auth-input"
-                  placeholder="tu@correo.com"
-                />
-              </div>
+        {formError && <p role="alert" aria-live="polite" className="mb-4 text-sm font-medium text-primary">{formError}</p>}
 
-              {/* Password field */}
-              <div className="mb-3">
-                <label className="auth-label">
-                  Contrasena
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    required
-                    value={passRaw}
-                    onChange={(e) => setPassRaw(e.target.value)}
-                    className="auth-input border-2 border-primary pr-12"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="auth-icon-button"
-                    aria-label={showPass ? 'Ocultar contrasena' : 'Mostrar contrasena'}
-                  >
-                    {showPass ? (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+        <button type="submit" className="auth-submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
+        </button>
+      </form>
 
-              {/* Forgot password */}
-              <div className="mb-5">
-                <button type="button" className="auth-link text-[13px]">
-                  Olvidaste tu contrasena?
-                </button>
-              </div>
+      <SocialAuthButtons action="Iniciar sesión" />
 
-              {/* Remember toggle */}
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-[14px] text-content-muted">Recordar mis datos de acceso</span>
-                <button
-                  type="button"
-                  onClick={() => setRemember(!remember)}
-                  className={`auth-toggle ${
-                    remember ? 'bg-primary' : 'bg-stroke'
-                  }`}
-                  role="switch"
-                  aria-checked={remember}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-                      remember ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Login button */}
-              <button
-                type="submit"
-                className="auth-submit"
-              >
-                Iniciar sesion
-              </button>
-            </form>
-
-            {/* OR divider */}
-            <div className="flex items-center gap-4 mb-5">
-              <div className="auth-divider" />
-              <span className="text-[13px] font-medium text-content-muted">O</span>
-              <div className="auth-divider" />
-            </div>
-
-            {/* Google button */}
-            <button className="auth-provider-button">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Continuar con Google
-            </button>
-
-            {/* Apple button (mobile only) */}
-            <button className="auth-provider-button sm:hidden">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.07c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.32zM12.03 7c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-              </svg>
-              Iniciar sesion con Apple
-            </button>
-
-            {/* Sign up link */}
-            <p className="text-center text-[13px] text-content-muted">
-              No tienes cuenta?{' '}
-              <Link to="/register" className="auth-link">
-                Registrate aqui
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+      <p className="text-center text-[13px] text-content-muted">
+        ¿No tienes cuenta?{' '}
+        <Link to="/register" className="auth-link">Regístrate aquí</Link>
+      </p>
+    </AuthLayout>
   )
 }
