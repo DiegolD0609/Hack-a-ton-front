@@ -14,8 +14,8 @@ async function request(path: string, body: LoginInput | RegisterInput): Promise<
   })
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => null) as { message?: string } | null
-    throw new Error(payload?.message ?? 'No fue posible completar la solicitud.')
+    const payload = await response.json().catch(() => null) as { detail?: string; message?: string } | null
+    throw new Error(payload?.detail ?? payload?.message ?? 'No fue posible completar la solicitud.')
   }
 
   return response.json() as Promise<User>

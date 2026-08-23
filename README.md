@@ -13,6 +13,43 @@ npm run dev
 
 La aplicación estará disponible en `http://localhost:5173`.
 
+## Entorno integrado para el hackathon
+
+Clona frontend y backend como carpetas hermanas:
+
+```text
+hackaton-kernel-panic/
+├── Hack-a-ton-end/
+└── Hack-a-ton-front/
+```
+
+Con Docker instalado, todo el stack se levanta desde `Hack-a-ton-front`:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Esto inicia PostgreSQL, FastAPI y Vite, espera sus healthchecks y habilita
+recarga automática en ambos proyectos. No necesitas instalar Python, Node.js
+ni PostgreSQL en el host.
+
+- Frontend: `http://localhost:5173`
+- API y Swagger: `http://localhost:8000/docs`
+- Estado del backend: `http://localhost:8000/health`
+
+Para detener sin borrar datos:
+
+```bash
+docker compose down
+```
+
+Para borrar también la base de datos local:
+
+```bash
+docker compose down -v
+```
+
 ## Rutas principales
 
 - `/landing`: presentación del producto y hero multimedia.

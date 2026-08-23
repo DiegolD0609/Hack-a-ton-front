@@ -1,25 +1,70 @@
+name: kernel-panic-hackathon
+
 services:
-  frontend:
-    build:
-      context: .
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
-    ports:
-      - "3000:80"
+  postgres:
+    image: postgres:16-alpine
     environment:
-      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
-    depends_on:
-      - backend
+      POSTGRES_USER: ${POSTGRES_USER:-hack_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hack_password}
+      POSTGRES_DB: ${POSTGRES_DB:-hackathon_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hack_user} -d ${POSTGRES_DB:-hackathon_db}"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
     restart: unless-stopped
 
-  # ── Your backend service ──
-  # Uncomment and configure when your backend is ready.
   backend:
-    image: your-backend-image:latest
-    # build:
-    #   context: ../your-backend-repo
+    build:
+      context: ../Hack-a-ton-end
+      dockerfile: docker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hack_user}:${POSTGRES_PASSWORD:-hack_password}@postgres:5432/${POSTGRES_DB:-hackathon_db}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
     ports:
-      - "8000:8000"
-    # environment:
-    #   - DATABASE_URL=postgresql://user:pass@db:5432/hackaton
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ../Hack-a-ton-end/app:/app/app
+      - ../Hack-a-ton-end/main.py:/app/main.py
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
     restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}/api
+      VITE_AUTH_MODE: api
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
