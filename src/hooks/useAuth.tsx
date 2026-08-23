@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
-import { authService, clearStoredUser, loadStoredUser, storeUser } from '@/features/auth'
+import { clearStoredUser, loadStoredUser, storeUser } from '@/features/auth'
 import type { User } from '@/features/auth'
+import { loginUser, registerUser } from '@/stores/userStore'
 
 interface AuthContextType {
   user: User | null
@@ -17,13 +18,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(loadStoredUser)
 
   const login = useCallback(async (email: string, password: string, remember = false) => {
-    const authenticatedUser = await authService.login({ email, password })
+    const authenticatedUser = await loginUser(email, password)
     storeUser(authenticatedUser, remember)
     setUser(authenticatedUser)
   }, [])
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const authenticatedUser = await authService.register({ name, email, password })
+    const authenticatedUser = await registerUser(name, email, password)
     storeUser(authenticatedUser, true)
     setUser(authenticatedUser)
   }, [])

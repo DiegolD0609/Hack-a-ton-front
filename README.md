@@ -36,7 +36,7 @@ ni PostgreSQL en el host.
 
 - Frontend: `http://localhost:5173`
 - API y Swagger: `http://localhost:8000/docs`
-- Estado del backend: `http://localhost:8000/health`
+- Estado del backend: `http://localhost:8000/ready`
 
 Para detener sin borrar datos:
 
@@ -71,7 +71,7 @@ Después de cambiar el valor ejecuta `docker compose up -d`. En modo
 
 - `/landing`: presentación del producto y hero multimedia.
 - `/demo`: recorrido logístico con datos precargados.
-- `/login` y `/register`: autenticación mock o conectada a API.
+- `/login` y `/register`: autenticación por correo y contraseña conectada a la API.
 - `/dashboard`: centro de operaciones protegido.
 - `/settings`: preferencias locales de la cuenta demo.
 
@@ -81,10 +81,48 @@ Copia `.env.example` como `.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
-VITE_AUTH_MODE=mock
 ```
 
-`VITE_AUTH_MODE=mock` permite presentar sin backend. Usa `api` para llamar a `/auth/login` y `/auth/register` bajo `VITE_API_URL`.
+El frontend llama a `/auth/login` y `/auth/register` bajo `VITE_API_URL`.
+En el contenedor de producción el valor predeterminado es `/api`, que Nginx
+envía al backend por la red privada.
+
+## Despliegue en Railway
+
+La topología recomendada usa tres servicios dentro del mismo proyecto:
+
+```text
+Internet -> frontend (Nginx) -> backend (FastAPI) -> Postgres
+                    /api        red privada          red privada
+```
+
+1. Agrega una base administrada PostgreSQL y nómbrala `Postgres`.
+2. Agrega el repositorio `Hack-a-ton-end` como servicio `backend`.
+3. En `backend`, configura:
+
+   ```env
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   PORT=8000
+   AUTH_USER_MODE=users
+   SQL_ECHO=false
+   DB_STARTUP_MAX_ATTEMPTS=15
+   DB_STARTUP_RETRY_SECONDS=2
+   ```
+
+4. Agrega este repositorio como servicio `frontend` y configura:
+
+   ```env
+   VITE_API_URL=/api
+   BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
+   ```
+
+5. Genera un dominio público solamente para `frontend`. El backend puede
+   mantenerse privado; si necesitas Swagger público, genera también un dominio
+   para `backend` y abre `/docs`.
+
+Railway detecta `railway.json`, construye ambos Dockerfiles y espera `/health`
+en el frontend y `/ready` en el backend antes de activar cada despliegue. Tanto
+Nginx como FastAPI escuchan el `PORT` inyectado por Railway.
 
 ## Comandos
 

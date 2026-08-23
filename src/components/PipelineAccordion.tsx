@@ -155,23 +155,29 @@ export default function PipelineAccordion() {
                       aria-controls={`pipeline-panel-${stage.number}`}
                       aria-label={`Abrir etapa ${stage.number}: ${stage.title}`}
                     />
-                    {isActive ? (
-                      <div id={`pipeline-panel-${stage.number}`} className="pipeline-reveal flex h-full flex-col p-7 xl:p-9">
-                        <div className="flex items-start justify-between gap-4">
-                          <h3 className="text-4xl xl:text-5xl">{stage.title}</h3>
-                          <span className="text-3xl text-white/45">{stage.number}</span>
-                        </div>
-                        <div className="relative z-20 mt-auto">
-                          <p className="max-w-sm leading-7 text-white/65">{stage.description}</p>
-                          <Link to={appConfig.routes.demo} className="btn-primary mt-7">Ver etapa en la demo</Link>
-                        </div>
+                    <div
+                      id={`pipeline-panel-${stage.number}`}
+                      className={`pipeline-fade absolute inset-0 flex flex-col p-8 xl:p-10 ${
+                        isActive ? 'is-active' : 'pointer-events-none'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="min-w-0 flex-1 text-4xl xl:text-5xl">{stage.title}</h3>
+                        <span className="shrink-0 text-3xl text-white/45">{stage.number}</span>
                       </div>
-                    ) : (
-                      <div className="flex h-full flex-col items-center py-7">
-                        <span className="text-3xl text-white/60">{stage.number}</span>
-                        <h3 className="mt-auto [writing-mode:vertical-rl] rotate-180 text-2xl">{stage.title}</h3>
+                      <div className="relative z-20 mt-auto">
+                        <p className="max-w-sm leading-7 text-white/65">{stage.description}</p>
+                        <Link to={appConfig.routes.demo} className="btn-primary mt-7">Ver etapa en la demo</Link>
                       </div>
-                    )}
+                    </div>
+                    <div
+                      className={`pipeline-fade flex h-full flex-col items-center py-7 ${
+                        isActive ? 'pointer-events-none' : 'is-active'
+                      }`}
+                    >
+                      <span className="text-3xl text-white/60">{stage.number}</span>
+                      <h3 className="mt-auto [writing-mode:vertical-rl] rotate-180 text-2xl">{stage.title}</h3>
+                    </div>
                   </article>
                 )
               })}
@@ -201,10 +207,10 @@ export default function PipelineAccordion() {
                   ))}
                 </div>
               </div>
-              <div key={active.number} className="pipeline-reveal p-5 pb-6">
+              <div key={active.number} className="pipeline-reveal p-6 pb-7">
                 <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-3xl">{active.title}</h3>
-                  <span className="text-2xl text-white/45">{active.number}</span>
+                  <h3 className="min-w-0 flex-1 text-3xl">{active.title}</h3>
+                  <span className="shrink-0 text-2xl text-white/45">{active.number}</span>
                 </div>
                 <p className="mt-4 leading-7 text-white/65">{active.description}</p>
                 <Link to={appConfig.routes.demo} className="btn-primary mt-6">Ver etapa en la demo</Link>

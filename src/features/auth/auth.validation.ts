@@ -21,7 +21,7 @@ export function validateRegister(input: {
   confirmPassword: string
   acceptedTerms: boolean
 }): FieldErrors<RegisterField> {
-  const errors: FieldErrors<RegisterField> = validateLogin(input.email, input.password)
+  const errors: FieldErrors<RegisterField> = validateLogin(input.email, input.password) as FieldErrors<RegisterField>
 
   if (input.name.trim().length < 2) errors.name = 'Ingresa tu nombre completo.'
   if (input.password !== input.confirmPassword) errors.confirmPassword = 'Las contraseñas no coinciden.'

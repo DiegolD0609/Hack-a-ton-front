@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import BrandModal from '@/components/BrandModal'
 import HeroVideoPlaylist from '@/components/HeroVideoPlaylist'
 import PipelineAccordion from '@/components/PipelineAccordion'
 import { appConfig } from '@/config/app'
 
 export default function Landing() {
+  const [brandOpen, setBrandOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
@@ -13,10 +15,17 @@ export default function Landing() {
         <HeroVideoPlaylist />
 
         <header className="absolute inset-x-0 top-0 z-30 px-4 py-4 sm:px-6 sm:py-6">
-          <nav className="relative mx-auto flex max-w-7xl items-start justify-between gap-2" aria-label="Navegación principal">
-            <Link to={appConfig.routes.home} className="glass-control px-3 py-3 font-display text-xs sm:px-5 sm:text-base">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3" aria-label="Navegación principal">
+            <button
+              type="button"
+              className="glass-control px-5 py-3 font-display text-sm sm:text-base"
+              aria-haspopup="dialog"
+              aria-expanded={brandOpen}
+              aria-controls="brand-modal"
+              onClick={() => setBrandOpen(true)}
+            >
               {appConfig.name}
-            </Link>
+            </button>
 
             <div className="relative flex items-center gap-1.5 sm:gap-2">
               <div className="glass-control flex items-center gap-0.5 p-1 sm:gap-1 sm:p-1.5">
@@ -32,18 +41,37 @@ export default function Landing() {
                 aria-expanded={isMenuOpen}
                 aria-controls="landing-menu"
               >
-                <span className="space-y-1.5" aria-hidden="true">
-                  <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? 'translate-y-[7px] rotate-45' : ''}`} />
-                  <span className={`block h-px w-5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
-                  <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? '-translate-y-[7px] -rotate-45' : ''}`} />
+                <span className="relative grid h-5 w-5 place-items-center" aria-hidden="true">
+                  <span
+                    className={`absolute flex flex-col justify-center gap-1.5 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+                      isMenuOpen ? 'scale-y-0 opacity-0' : 'scale-y-100 opacity-100'
+                    }`}
+                  >
+                    <span className="block h-px w-5 bg-white" />
+                    <span className="block h-px w-5 bg-white" />
+                    <span className="block h-px w-5 bg-white" />
+                  </span>
+                  <span
+                    className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+                      isMenuOpen ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
+                    }`}
+                  >
+                    <span className="absolute top-1/2 left-1/2 h-px w-5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-white" />
+                    <span className="absolute top-1/2 left-1/2 h-px w-5 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-white" />
+                  </span>
                 </span>
               </button>
 
-              {isMenuOpen && (
-                <div id="landing-menu" className="menu-popover absolute right-0 top-14 z-40 w-max p-1.5 sm:top-16 sm:p-2">
-                  <MenuLink to={appConfig.routes.demo} label="Abrir demo" onClick={() => setIsMenuOpen(false)} />
-                </div>
-              )}
+              <div
+                id="landing-menu"
+                className={`menu-popover absolute right-0 top-14 z-40 w-max origin-top p-1.5 motion-reduce:scale-y-100 sm:top-16 sm:p-2 ${
+                  isMenuOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-[0.4] opacity-0'
+                }`}
+                aria-hidden={!isMenuOpen}
+                inert={!isMenuOpen}
+              >
+                <MenuLink to={appConfig.routes.demo} label="Abrir demo" onClick={() => setIsMenuOpen(false)} />
+              </div>
             </div>
           </nav>
         </header>
@@ -84,6 +112,8 @@ export default function Landing() {
           </div>
         </section>
       </main>
+
+      <BrandModal open={brandOpen} onClose={() => setBrandOpen(false)} />
 
       <footer className="px-5 py-10 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 border-t border-black/15 pt-8 text-sm text-black/55 sm:flex-row sm:items-center sm:justify-between">

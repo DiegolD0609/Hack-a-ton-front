@@ -26,6 +26,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hack_user}:${POSTGRES_PASSWORD:-hack_password}@postgres:5432/${POSTGRES_DB:-hackathon_db}
       CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
       AUTH_USER_MODE: ${AUTH_USER_MODE:-users}
+      SQL_ECHO: ${SQL_ECHO:-false}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -36,7 +37,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=2)"]
       interval: 5s
       timeout: 3s
       retries: 15
@@ -48,7 +49,6 @@ services:
     working_dir: /app
     environment:
       VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}/api
-      VITE_AUTH_MODE: api
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
