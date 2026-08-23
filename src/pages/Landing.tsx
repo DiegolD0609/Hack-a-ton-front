@@ -13,40 +13,38 @@ export default function Landing() {
         <HeroVideoPlaylist />
 
         <header className="absolute inset-x-0 top-0 z-30 px-4 py-4 sm:px-6 sm:py-6">
-          <nav className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-start gap-3" aria-label="Navegación principal">
-            <Link to={appConfig.routes.home} className="glass-control justify-self-start px-5 py-3 font-display text-sm sm:text-base">
+          <nav className="relative mx-auto flex max-w-7xl items-start justify-between gap-2" aria-label="Navegación principal">
+            <Link to={appConfig.routes.home} className="glass-control px-3 py-3 font-display text-xs sm:px-5 sm:text-base">
               {appConfig.name}
             </Link>
 
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((open) => !open)}
-              className="glass-control grid h-12 w-12 place-items-center justify-self-center"
-              aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              aria-expanded={isMenuOpen}
-            >
-              <span className="space-y-1.5" aria-hidden="true">
-                <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? 'translate-y-[7px] rotate-45' : ''}`} />
-                <span className={`block h-px w-5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
-                <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? '-translate-y-[7px] -rotate-45' : ''}`} />
-              </span>
-            </button>
-
-            <div className="glass-control hidden items-center gap-1 justify-self-end p-1.5 sm:flex">
-              <Link to={appConfig.routes.login} className="rounded-full px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white">Login</Link>
-              <Link to={appConfig.routes.register} className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/25">Sign up</Link>
-            </div>
-
-            {isMenuOpen && (
-              <div className="glass-control absolute left-1/2 top-16 w-[min(92vw,24rem)] -translate-x-1/2 p-3">
-                <div className="grid gap-1">
-                  <MenuLink to="#pipeline" label="Pipeline" onClick={() => setIsMenuOpen(false)} />
-                  <MenuLink to={appConfig.routes.demo} label="Demo guiada" onClick={() => setIsMenuOpen(false)} />
-                  <MenuLink to={appConfig.routes.login} label="Login" onClick={() => setIsMenuOpen(false)} />
-                  <MenuLink to={appConfig.routes.register} label="Crear cuenta" onClick={() => setIsMenuOpen(false)} />
-                </div>
+            <div className="relative flex items-center gap-1.5 sm:gap-2">
+              <div className="glass-control flex items-center gap-0.5 p-1 sm:gap-1 sm:p-1.5">
+                <Link to={appConfig.routes.login} className="rounded-full px-2 py-2.5 text-xs font-medium text-white/85 hover:bg-white/10 hover:text-white sm:px-4 sm:text-sm">Login</Link>
+                <Link to={appConfig.routes.register} className="rounded-full bg-white/15 px-2 py-2.5 text-xs font-medium text-white hover:bg-white/25 sm:px-4 sm:text-sm">Sign up</Link>
               </div>
-            )}
+
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((open) => !open)}
+                className="glass-control grid h-11 w-11 shrink-0 place-items-center sm:h-12 sm:w-12"
+                aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-expanded={isMenuOpen}
+                aria-controls="landing-menu"
+              >
+                <span className="space-y-1.5" aria-hidden="true">
+                  <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? 'translate-y-[7px] rotate-45' : ''}`} />
+                  <span className={`block h-px w-5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
+                  <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? '-translate-y-[7px] -rotate-45' : ''}`} />
+                </span>
+              </button>
+
+              {isMenuOpen && (
+                <div id="landing-menu" className="menu-popover absolute right-0 top-14 z-40 w-max p-1.5 sm:top-16 sm:p-2">
+                  <MenuLink to={appConfig.routes.demo} label="Abrir demo" onClick={() => setIsMenuOpen(false)} />
+                </div>
+              )}
+            </div>
           </nav>
         </header>
 
@@ -99,7 +97,7 @@ export default function Landing() {
 
 function MenuLink({ to, label, onClick }: { to: string; label: string; onClick: () => void }) {
   return (
-    <Link to={to} onClick={onClick} className="rounded-full px-5 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+    <Link to={to} onClick={onClick} className="block rounded-md px-4 py-2.5 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white">
       {label}
     </Link>
   )

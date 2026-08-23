@@ -166,6 +166,15 @@
     @apply rounded-full border border-white/15 bg-black/30 text-white shadow-sm backdrop-blur-xl transition-colors hover:bg-black/50;
   }
 
+  .menu-popover {
+    @apply rounded-xl border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-xl;
+    animation: menu-reveal 180ms ease-out both;
+  }
+
+  .pipeline-reveal {
+    animation: pipeline-reveal 420ms ease-out both;
+  }
+
   .auth-page {
     @apply flex min-h-screen flex-col bg-surface lg:flex-row;
   }
@@ -214,5 +223,40 @@
 
   .auth-divider {
     @apply h-px flex-1 bg-stroke;
+  }
+}
+
+@keyframes menu-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pipeline-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .menu-popover,
+  .pipeline-reveal {
+    animation: none;
   }
 }

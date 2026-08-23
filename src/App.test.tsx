@@ -23,6 +23,19 @@ describe('application routes', () => {
     expect(screen.getByText('Envíos activos')).toBeInTheDocument()
   })
 
+  it('keeps authentication visible and limits the burger menu to the demo', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(screen.getByRole('link', { name: 'Login' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Sign up' })).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menú' }))
+
+    expect(screen.getByRole('link', { name: 'Abrir demo' })).toHaveAttribute('href', '/demo')
+    expect(screen.queryByRole('link', { name: 'Pipeline' })).not.toBeInTheDocument()
+  })
+
   it('redirects protected routes to login', () => {
     window.history.pushState({}, '', '/dashboard')
     render(<App />)
