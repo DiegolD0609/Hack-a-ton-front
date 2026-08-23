@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthField, AuthLayout, AuthToggle, PasswordField } from '@/components/auth'
+import { AuthField, AuthLayout, AuthToggle } from '@/components/auth'
 import { validateRegister } from '@/features/auth'
 import type { FieldErrors, RegisterField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,8 +10,6 @@ import { appConfig } from '@/config/app'
 export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [errors, setErrors] = useState<FieldErrors<RegisterField>>({})
   const [formError, setFormError] = useState('')
@@ -21,7 +19,7 @@ export default function Register() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const nextErrors = validateRegister({ name, email, password, confirmPassword, acceptedTerms })
+    const nextErrors = validateRegister({ name, email, acceptedTerms })
     setErrors(nextErrors)
     setFormError('')
 
@@ -29,7 +27,7 @@ export default function Register() {
 
     try {
       setIsSubmitting(true)
-      await register(name.trim(), email.trim(), password)
+      await register(name.trim(), email.trim())
       navigate('/dashboard')
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'No fue posible crear tu cuenta.')
@@ -65,26 +63,6 @@ export default function Register() {
           onChange={(event) => setEmail(event.target.value)}
           error={errors.email}
           placeholder="tu@correo.com"
-        />
-        <PasswordField
-          id="register-password"
-          autoComplete="new-password"
-          required
-          label="Contraseña"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          error={errors.password}
-          placeholder="••••••••"
-        />
-        <PasswordField
-          id="register-confirm-password"
-          autoComplete="new-password"
-          required
-          label="Confirmar contraseña"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          error={errors.confirmPassword}
-          placeholder="••••••••"
         />
 
         <AuthToggle

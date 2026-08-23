@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthField, AuthLayout, AuthToggle, PasswordField } from '@/components/auth'
+import { AuthField, AuthLayout, AuthToggle } from '@/components/auth'
 import { validateLogin } from '@/features/auth'
 import type { FieldErrors, LoginField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,7 +9,6 @@ import { appConfig } from '@/config/app'
 
 export default function Login() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [errors, setErrors] = useState<FieldErrors<LoginField>>({})
   const [formError, setFormError] = useState('')
@@ -19,7 +18,7 @@ export default function Login() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const nextErrors = validateLogin(email, password)
+    const nextErrors = validateLogin(email)
     setErrors(nextErrors)
     setFormError('')
 
@@ -27,7 +26,7 @@ export default function Login() {
 
     try {
       setIsSubmitting(true)
-      await login(email.trim(), password, remember)
+      await login(email.trim(), remember)
       navigate('/dashboard')
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'No fue posible iniciar sesión.')
@@ -52,16 +51,6 @@ export default function Login() {
           onChange={(event) => setEmail(event.target.value)}
           error={errors.email}
           placeholder="tu@correo.com"
-        />
-        <PasswordField
-          id="login-password"
-          autoComplete="current-password"
-          required
-          label="Contraseña"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          error={errors.password}
-          placeholder="••••••••"
         />
 
         <AuthToggle checked={remember} label="Recordar mis datos de acceso" onChange={setRemember} />

@@ -1,20 +1,16 @@
 export interface User {
+  id?: number
   name: string
   email: string
 }
 
 export interface LoginInput {
   email: string
-  password: string
 }
 
-export interface RegisterInput extends LoginInput {
+export interface RegisterInput {
   name: string
-}
-
-export interface AuthService {
-  login: (input: LoginInput) => Promise<User>
-  register: (input: RegisterInput) => Promise<User>
+  email: string
 }
 
 export type FieldErrors<T extends string> = Partial<Record<T, string>>

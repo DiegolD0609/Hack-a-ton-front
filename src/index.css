@@ -185,7 +185,7 @@
 
   .pipeline-reveal {
     transform-origin: top center;
-    animation: pipeline-reveal 420ms var(--ease-out-expo) both;
+    animation: pipeline-reveal 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .pipeline-fade {
@@ -199,6 +199,10 @@
 
   .pipeline-columns {
     transition: grid-template-columns 420ms var(--ease-out-expo);
+  }
+
+  .pipeline-grid {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .auth-page {
@@ -356,7 +360,8 @@
   }
 
   .pipeline-fade,
-  .pipeline-columns {
+  .pipeline-columns,
+  .pipeline-grid {
     transition-duration: 0.01ms;
   }
 }

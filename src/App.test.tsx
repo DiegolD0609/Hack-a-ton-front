@@ -56,32 +56,26 @@ describe('application routes', () => {
     expect(screen.getByRole('heading', { name: /bienvenido de vuelta/i })).toBeInTheDocument()
   })
 
-  it('shows accessible validation errors in login', async () => {
+  it('shows an accessible validation error for an invalid login email', async () => {
     const user = userEvent.setup()
     window.history.pushState({}, '', '/login')
     render(<App />)
 
     await user.type(screen.getByLabelText('Correo electrónico'), 'correo-invalido')
-    await user.type(screen.getByLabelText('Contraseña'), '123')
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     expect(screen.getByText('Ingresa un correo válido.')).toBeInTheDocument()
-    expect(screen.getByText('Usa al menos 8 caracteres.')).toBeInTheDocument()
   })
 
-  it('requires registration terms and matching passwords', async () => {
+  it('requires a name and accepted terms to register', async () => {
     const user = userEvent.setup()
     window.history.pushState({}, '', '/register')
     render(<App />)
 
-    await user.type(screen.getByLabelText('Nombre completo'), 'Alex')
     await user.type(screen.getByLabelText('Correo electrónico'), 'alex@example.com')
-    const passwordInputs = screen.getAllByLabelText(/contraseña/i)
-    await user.type(passwordInputs[0], 'password123')
-    await user.type(passwordInputs[1], 'different123')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
-    expect(screen.getByText('Las contraseñas no coinciden.')).toBeInTheDocument()
+    expect(screen.getByText('Ingresa tu nombre completo.')).toBeInTheDocument()
     expect(screen.getByText('Debes aceptar los términos y condiciones.')).toBeInTheDocument()
   })
 })
