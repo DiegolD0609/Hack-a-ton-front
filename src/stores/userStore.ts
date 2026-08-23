@@ -23,7 +23,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
 export async function registerUser(name: string, email: string): Promise<User> {
   const base = requireApiUrl()
 
-  const response = await fetch(`${base}/users/`, {
+  const response = await fetch(`${base}/users_test/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email }),
