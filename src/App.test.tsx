@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
@@ -11,6 +11,20 @@ describe('application routes', () => {
   it('renders the public landing page', () => {
     render(<App />)
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+
+  it('opens the brand modal from the landing header', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Kernel Panic' }))
+
+    expect(screen.getByRole('dialog', { name: 'Kernel Panic' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Kernel Panic' })).not.toBeInTheDocument()
+    })
   })
 
   it('opens the backend-free guided demo', async () => {

@@ -49,3 +49,5 @@ coverage
 *.tsbuildinfo
 *.tmp
 *.temp
+
+*Product.md
