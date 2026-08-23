@@ -1,90 +1,75 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroVideoPlaylist from '@/components/HeroVideoPlaylist'
+import PipelineAccordion from '@/components/PipelineAccordion'
 import { appConfig } from '@/config/app'
 
-const capabilities = [
-  {
-    number: '01',
-    title: 'Visibilidad operativa',
-    description: 'Sigue cada envío, evento y excepción desde una sola vista compartida.',
-  },
-  {
-    number: '02',
-    title: 'Decisiones más rápidas',
-    description: 'Convierte señales de operación en acciones claras para tu equipo logístico.',
-  },
-  {
-    number: '03',
-    title: 'Entrega coordinada',
-    description: 'Mantén alineados a operadores, aliados y clientes hasta la última milla.',
-  },
-]
-
 export default function Landing() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-white text-ink">
-      <section className="relative m-2 min-h-[calc(100svh-1rem)] overflow-hidden rounded-[1.75rem] bg-black sm:m-3 sm:min-h-[calc(100svh-1.5rem)] sm:rounded-[2.25rem]">
+      <section className="relative m-2 h-[88svh] min-h-[560px] max-h-[880px] overflow-hidden rounded-[1.75rem] bg-black sm:m-3 sm:rounded-[2.25rem]">
         <HeroVideoPlaylist />
 
         <header className="absolute inset-x-0 top-0 z-30 px-4 py-4 sm:px-6 sm:py-6">
-          <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3" aria-label="Navegación principal">
-            <Link to={appConfig.routes.home} className="glass-control px-5 py-3 font-display text-sm sm:text-base">
+          <nav className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-start gap-3" aria-label="Navegación principal">
+            <Link to={appConfig.routes.home} className="glass-control justify-self-start px-5 py-3 font-display text-sm sm:text-base">
               {appConfig.name}
             </Link>
 
-            <div className="glass-control flex items-center gap-1 p-1.5">
-              <Link to={appConfig.routes.login} className="rounded-full px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white">
-                Login
-              </Link>
-              <Link to={appConfig.routes.register} className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/25">
-                Sign up
-              </Link>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              className="glass-control grid h-12 w-12 place-items-center justify-self-center"
+              aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={isMenuOpen}
+            >
+              <span className="space-y-1.5" aria-hidden="true">
+                <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? 'translate-y-[7px] rotate-45' : ''}`} />
+                <span className={`block h-px w-5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
+                <span className={`block h-px w-5 bg-white transition-transform ${isMenuOpen ? '-translate-y-[7px] -rotate-45' : ''}`} />
+              </span>
+            </button>
+
+            <div className="glass-control hidden items-center gap-1 justify-self-end p-1.5 sm:flex">
+              <Link to={appConfig.routes.login} className="rounded-full px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10 hover:text-white">Login</Link>
+              <Link to={appConfig.routes.register} className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/25">Sign up</Link>
             </div>
+
+            {isMenuOpen && (
+              <div className="glass-control absolute left-1/2 top-16 w-[min(92vw,24rem)] -translate-x-1/2 p-3">
+                <div className="grid gap-1">
+                  <MenuLink to="#pipeline" label="Pipeline" onClick={() => setIsMenuOpen(false)} />
+                  <MenuLink to={appConfig.routes.demo} label="Demo guiada" onClick={() => setIsMenuOpen(false)} />
+                  <MenuLink to={appConfig.routes.login} label="Login" onClick={() => setIsMenuOpen(false)} />
+                  <MenuLink to={appConfig.routes.register} label="Crear cuenta" onClick={() => setIsMenuOpen(false)} />
+                </div>
+              </div>
+            )}
           </nav>
         </header>
 
-        <div className="relative z-10 flex min-h-[calc(100svh-1rem)] items-end px-5 pb-32 pt-28 sm:min-h-[calc(100svh-1.5rem)] sm:px-10 sm:pb-20 lg:px-16">
-          <div className="max-w-3xl text-white">
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Logística conectada · Operación visible</p>
-            <h1 className="max-w-3xl text-4xl leading-[1.05] sm:text-6xl lg:text-7xl">
-              Mueve lo que importa, sin perderlo de vista.
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-white/75 sm:text-lg">
-              {appConfig.tagline}
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to={appConfig.routes.demo} className="btn-primary w-full sm:w-auto">
-                Explorar la demo
-              </Link>
-              <a href="#capabilities" className="glass-control inline-flex w-full items-center justify-center px-5 py-3 text-sm font-semibold sm:w-auto">
-                Conocer el flujo
-              </a>
-            </div>
+        <div className="relative z-10 flex h-full items-center px-5 py-24 sm:px-10 lg:px-16">
+          <div className="max-w-xl text-white">
+            <h1 className="text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">Logística en movimiento.</h1>
+            <Link to={appConfig.routes.demo} className="btn-primary mt-7">Explorar la demo</Link>
           </div>
         </div>
+
+        <a
+          href="#pipeline"
+          className="absolute -bottom-px left-1/2 z-20 flex h-14 w-32 -translate-x-1/2 items-center justify-center rounded-t-[2rem] bg-white text-ink"
+          aria-label="Descubrir el pipeline"
+        >
+          <svg className="h-5 w-5 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+          </svg>
+        </a>
       </section>
 
       <main>
-        <section className="px-5 py-20 sm:px-8 sm:py-28" id="capabilities">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-              <p className="eyebrow">De origen a destino</p>
-              <h2 className="max-w-4xl text-4xl leading-tight sm:text-5xl lg:text-6xl">
-                Una operación que se siente tan clara como debería.
-              </h2>
-            </div>
-
-            <div className="mt-14 grid border-t border-black/15 md:grid-cols-3">
-              {capabilities.map((capability) => (
-                <article key={capability.number} className="border-b border-black/15 py-8 md:border-b-0 md:border-r md:px-7 md:last:border-r-0 md:first:pl-0">
-                  <p className="text-sm font-semibold text-secondary">{capability.number}</p>
-                  <h3 className="mt-10 text-2xl">{capability.title}</h3>
-                  <p className="mt-4 max-w-sm leading-7 text-black/60">{capability.description}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <PipelineAccordion />
 
         <section className="m-2 overflow-hidden rounded-[1.75rem] bg-black px-5 py-20 text-white sm:m-3 sm:rounded-[2.25rem] sm:px-10 sm:py-28 lg:px-16">
           <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2 lg:items-center">
@@ -109,5 +94,13 @@ export default function Landing() {
         </div>
       </footer>
     </div>
+  )
+}
+
+function MenuLink({ to, label, onClick }: { to: string; label: string; onClick: () => void }) {
+  return (
+    <Link to={to} onClick={onClick} className="rounded-full px-5 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+      {label}
+    </Link>
   )
 }
