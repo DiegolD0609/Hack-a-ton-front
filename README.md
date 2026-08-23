@@ -50,6 +50,23 @@ Para borrar también la base de datos local:
 docker compose down -v
 ```
 
+## Modos de autenticación
+
+El frontend consume la misma API en ambos modos. El backend puede autenticar
+contra la tabla principal o contra los usuarios de prueba cambiando `.env`:
+
+```env
+# Cuentas registradas normalmente
+AUTH_USER_MODE=users
+
+# Datos de prueba precargados
+AUTH_USER_MODE=test_users
+```
+
+Después de cambiar el valor ejecuta `docker compose up -d`. En modo
+`test_users`, los cinco correos de `/users_test/` usan la contraseña
+`Hackathon123!`.
+
 ## Rutas principales
 
 - `/landing`: presentación del producto y hero multimedia.

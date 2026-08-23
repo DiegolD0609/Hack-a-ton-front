@@ -25,6 +25,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hack_user}:${POSTGRES_PASSWORD:-hack_password}@postgres:5432/${POSTGRES_DB:-hackathon_db}
       CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
+      AUTH_USER_MODE: ${AUTH_USER_MODE:-users}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
