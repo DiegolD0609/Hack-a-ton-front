@@ -25,8 +25,11 @@ RUN npm run build
 # ──────────────────────────────────────────────
 FROM nginx:stable-alpine AS production
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+# Remove the default virtual host and avoid spawning one worker per host CPU.
+# Railway containers can see dozens of host CPUs even when the service has a
+# small resource limit, so a single Nginx worker is more predictable here.
+RUN rm /etc/nginx/conf.d/default.conf \
+    && sed -i 's/worker_processes  auto;/worker_processes  1;/' /etc/nginx/nginx.conf
 
 # Custom nginx config with SPA fallback and API proxy
 COPY nginx.conf /etc/nginx/conf.d/default.conf
