@@ -1,29 +1,34 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useAuth } from '@/hooks/useAuth'
+
+const preferencesKey = 'kernel-panic:preferences'
 
 export default function Settings() {
-  const [name, setName] = useState('Diego')
-  const [email, setEmail] = useState('diego@finva-app.com')
+  const { user } = useAuth()
+  const [name, setName] = useState(user?.name ?? '')
+  const [email, setEmail] = useState(user?.email ?? '')
+  const [saved, setSaved] = useState(false)
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    // TODO: integrate settings update logic
-    console.log('Settings saved:', { name, email })
+    localStorage.setItem(preferencesKey, JSON.stringify({ name, email }))
+    setSaved(true)
   }
 
   return (
     <div>
       <h1 className="text-3xl text-content">
-        Settings
+        Preferencias
       </h1>
       <p className="mt-2 text-sm text-content-muted">
-        Manage your account preferences.
+        Administra los datos visibles de tu cuenta demo.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 max-w-lg space-y-6">
         <div>
           <label htmlFor="name" className="form-label">
-            Name
+            Nombre
           </label>
           <input
             id="name"
@@ -36,7 +41,7 @@ export default function Settings() {
 
         <div>
           <label htmlFor="settings-email" className="form-label">
-            Email
+            Correo electrónico
           </label>
           <input
             id="settings-email"
@@ -52,8 +57,11 @@ export default function Settings() {
             type="submit"
             className="btn-primary"
           >
-            Save changes
+            Guardar cambios
           </button>
+          <p className="mt-3 text-sm text-content-muted" aria-live="polite">
+            {saved ? 'Cambios guardados en este dispositivo.' : ''}
+          </p>
         </div>
       </form>
     </div>

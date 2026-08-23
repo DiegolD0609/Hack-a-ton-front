@@ -2,19 +2,19 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="text-3xl text-content">
-        Dashboard
+        Centro de operaciones
       </h1>
       <p className="mt-2 text-sm text-content-muted">
-        Welcome back! Here's an overview of your project.
+        Visibilidad rápida de la red logística de demostración.
       </p>
 
       {/* Stats grid */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Users', value: '1,240', change: '+12%' },
-          { label: 'Revenue', value: '$8,320', change: '+8%' },
-          { label: 'Active Sessions', value: '342', change: '+23%' },
-          { label: 'Conversion', value: '3.6%', change: '+2%' },
+          { label: 'Envíos activos', value: '148', change: '+12 hoy' },
+          { label: 'A tiempo', value: '94%', change: '+3% esta semana' },
+          { label: 'En tránsito', value: '82', change: '6 rutas activas' },
+          { label: 'Excepciones', value: '7', change: '4 por resolver' },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -25,7 +25,7 @@ export default function Dashboard() {
               {stat.value}
             </p>
             <p className="mt-1 text-xs font-semibold text-signal">
-              {stat.change} from last month
+              {stat.change}
             </p>
           </div>
         ))}
@@ -34,7 +34,7 @@ export default function Dashboard() {
       {/* Placeholder content */}
       <div className="mt-8 rounded-card border-2 border-dashed border-ocean/40 bg-surface-tinted p-12 text-center">
         <p className="text-sm text-content-muted">
-          Add your charts, tables, and widgets here.
+          Conecta aquí el mapa, las alertas y la tabla de envíos del backend.
         </p>
       </div>
     </div>

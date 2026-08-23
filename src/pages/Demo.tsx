@@ -20,7 +20,7 @@ export default function Demo() {
         <div className="mx-auto max-w-4xl">
           <p className="eyebrow">Demo guiada · datos de ejemplo</p>
           <h1 className="mt-3 max-w-3xl text-4xl leading-tight sm:text-5xl">
-            Un plan financiero entendible en menos de un minuto.
+            Una operación logística entendible en menos de un minuto.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-content-muted">
             Recorre el flujo principal sin registrarte ni depender del backend.
@@ -76,10 +76,10 @@ function ProfileStep() {
   return (
     <div>
       <p className="eyebrow">Punto de partida</p>
-      <h2 className="mt-2 text-3xl">Hola, {profile.name}</h2>
+      <h2 className="mt-2 text-3xl">Hola, {profile.name}. Esta es tu operación.</h2>
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Metric label="Ingreso mensual" value={profile.monthlyIncome} />
-        <Metric label="Ahorro disponible" value={profile.availableSavings} />
+        <Metric label="Envíos activos" value={profile.activeShipments} />
+        <Metric label="Entregas a tiempo" value={profile.onTimeDeliveries} />
         <Metric label="Meta prioritaria" value={profile.goal} />
       </div>
     </div>
@@ -89,8 +89,8 @@ function ProfileStep() {
 function PlanStep() {
   return (
     <div>
-      <p className="eyebrow">Distribución sugerida</p>
-      <h2 className="mt-2 text-3xl">Tu dinero, con un propósito</h2>
+      <p className="eyebrow">Estado de la red</p>
+      <h2 className="mt-2 text-3xl">Cada envío, en contexto</h2>
       <div className="mt-8 space-y-5">
         {demoScenario.plan.map((item) => (
           <div key={item.label}>
@@ -111,15 +111,15 @@ function ProjectionStep() {
   const { projection } = demoScenario
   return (
     <div>
-      <p className="eyebrow">Proyección simple</p>
-      <h2 className="mt-2 text-3xl">Lo que puedes construir</h2>
+      <p className="eyebrow">Impacto operativo</p>
+      <h2 className="mt-2 text-3xl">Decisiones que mantienen todo en movimiento</h2>
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Metric label="Aportación mensual" value={projection.monthlyContribution} />
-        <Metric label="En 6 meses" value={projection.sixMonths} />
-        <Metric label="En 12 meses" value={projection.twelveMonths} />
+        <Metric label="Entregas diarias" value={projection.dailyDeliveries} />
+        <Metric label="Precisión de ETA" value={projection.etaAccuracy} />
+        <Metric label="Resolución promedio" value={projection.resolvedExceptions} />
       </div>
       <p className="mt-6 text-sm text-content-muted">
-        Proyección ilustrativa sin rendimientos. La versión conectada puede incorporar reglas y datos reales.
+        Escenario ilustrativo. La versión conectada puede incorporar telemetría, reglas y datos reales de la operación.
       </p>
     </div>
   )

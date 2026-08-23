@@ -44,22 +44,24 @@
   --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Alfa Slab One", Georgia, serif;
 
-  --color-ink: #1d3557;
+  --color-ink: #080808;
   --color-ocean: #457b9d;
   --color-sky: #a8dadc;
-  --color-cream: #f1faee;
-  --color-signal: #e63946;
+  --color-cream: #ffffff;
+  --color-signal: #c56632;
 
-  --color-primary: #e63946;
-  --color-primary-hover: #c92f3b;
+  --color-primary: #1d3557;
+  --color-primary-hover: #142740;
   --color-secondary: #457b9d;
   --color-secondary-hover: #376982;
-  --color-surface: #f1faee;
+  --color-impact: #c56632;
+  --color-impact-hover: #a94f27;
+  --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-surface-tinted: #d9eff0;
-  --color-content: #1d3557;
+  --color-surface-tinted: #eef6f6;
+  --color-content: #080808;
   --color-content-muted: #457b9d;
-  --color-stroke: #a8dadc;
+  --color-stroke: #d5e5e6;
 
   --radius-control: 0.75rem;
   --radius-card: 1.5rem;
@@ -137,7 +139,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-control bg-primary px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-primary-hover;
+    @apply inline-flex items-center justify-center rounded-control bg-impact px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-impact-hover;
   }
 
   .btn-secondary {
@@ -158,6 +160,10 @@
 
   .eyebrow {
     @apply text-xs font-bold uppercase tracking-[0.2em] text-signal;
+  }
+
+  .glass-control {
+    @apply rounded-full border border-white/15 bg-black/30 text-white shadow-sm backdrop-blur-xl transition-colors hover:bg-black/50;
   }
 
   .auth-page {
@@ -195,7 +201,7 @@
   }
 
   .auth-submit {
-    @apply mb-5 w-full rounded-control bg-primary py-4 text-[15px] font-bold text-white shadow-md shadow-primary/20 transition-all duration-200 hover:bg-primary-hover active:scale-[0.99];
+    @apply mb-5 w-full rounded-control bg-impact py-4 text-[15px] font-bold text-white shadow-md shadow-impact/20 transition-all duration-200 hover:bg-impact-hover active:scale-[0.99];
   }
 
   .auth-provider-button {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthField, AuthLayout, AuthToggle, PasswordField, SocialAuthButtons } from '@/components/auth'
+import { AuthField, AuthLayout, AuthToggle, PasswordField } from '@/components/auth'
 import { validateLogin } from '@/features/auth'
 import type { FieldErrors, LoginField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,7 +39,7 @@ export default function Login() {
   return (
     <AuthLayout
       heading={`Bienvenido de vuelta a ${appConfig.name}`}
-      quote="La plataforma que mi equipo y yo necesitábamos para crecer."
+      quote="La visibilidad que nuestro equipo necesitaba para mover cada entrega a tiempo."
     >
       <form onSubmit={handleSubmit} noValidate>
         <AuthField
@@ -64,10 +64,6 @@ export default function Login() {
           placeholder="••••••••"
         />
 
-        <div className="mb-5">
-          <button type="button" className="auth-link text-[13px]">¿Olvidaste tu contraseña?</button>
-        </div>
-
         <AuthToggle checked={remember} label="Recordar mis datos de acceso" onChange={setRemember} />
 
         {formError && <p role="alert" aria-live="polite" className="mb-4 text-sm font-medium text-primary">{formError}</p>}
@@ -76,8 +72,6 @@ export default function Login() {
           {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
         </button>
       </form>
-
-      <SocialAuthButtons action="Iniciar sesión" />
 
       <p className="text-center text-[13px] text-content-muted">
         ¿No tienes cuenta?{' '}

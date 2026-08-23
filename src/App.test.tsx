@@ -17,10 +17,10 @@ describe('application routes', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(screen.getByRole('link', { name: 'Learn More' }))
+    await user.click(screen.getByRole('link', { name: 'Explorar la demo' }))
 
-    expect(screen.getByRole('heading', { name: /plan financiero entendible/i })).toBeInTheDocument()
-    expect(screen.getByText('Ingreso mensual')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /operación logística entendible/i })).toBeInTheDocument()
+    expect(screen.getByText('Envíos activos')).toBeInTheDocument()
   })
 
   it('redirects protected routes to login', () => {

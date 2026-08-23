@@ -1,6 +1,6 @@
 export const appConfig = {
   name: 'Kernel Panic',
-  tagline: 'Convierte tus metas financieras en un plan claro y accionable.',
+  tagline: 'Coordina envíos, equipos y decisiones desde una experiencia logística clara y accionable.',
   hackathon: 'NextWave 2026',
   team: {
     name: 'Kernel Panic',
@@ -20,18 +20,18 @@ export const appConfig = {
 export const demoScenario = {
   profile: {
     name: 'Alex',
-    monthlyIncome: '$25,000',
-    availableSavings: '$4,800',
-    goal: 'Crear un fondo de emergencia',
+    activeShipments: '148',
+    onTimeDeliveries: '94%',
+    goal: 'Reducir retrasos de última milla',
   },
   plan: [
-    { label: 'Fondo de emergencia', percentage: 50, color: 'bg-signal' },
-    { label: 'Inversión conservadora', percentage: 30, color: 'bg-ocean' },
-    { label: 'Liquidez mensual', percentage: 20, color: 'bg-sky' },
+    { label: 'Entregas a tiempo', percentage: 72, color: 'bg-primary' },
+    { label: 'En tránsito', percentage: 20, color: 'bg-secondary' },
+    { label: 'Con excepción', percentage: 8, color: 'bg-impact' },
   ],
   projection: {
-    monthlyContribution: '$4,800',
-    sixMonths: '$28,800',
-    twelveMonths: '$57,600',
+    dailyDeliveries: '320',
+    etaAccuracy: '96%',
+    resolvedExceptions: '18 min',
   },
 } as const

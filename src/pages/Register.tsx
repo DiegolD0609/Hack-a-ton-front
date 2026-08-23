@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthField, AuthLayout, AuthToggle, PasswordField, SocialAuthButtons } from '@/components/auth'
+import { AuthField, AuthLayout, AuthToggle, PasswordField } from '@/components/auth'
 import { validateRegister } from '@/features/auth'
 import type { FieldErrors, RegisterField } from '@/features/auth'
 import { useAuth } from '@/hooks/useAuth'
@@ -41,7 +41,7 @@ export default function Register() {
   return (
     <AuthLayout
       heading={`Crea tu cuenta en ${appConfig.name}`}
-      quote="Empecé a invertir sin complicaciones desde el primer día."
+      quote="Pasamos de reaccionar tarde a anticipar cada excepción de la operación."
     >
       <form onSubmit={handleSubmit} noValidate>
         <AuthField
@@ -101,8 +101,6 @@ export default function Register() {
           {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
         </button>
       </form>
-
-      <SocialAuthButtons action="Registrarse" />
 
       <p className="text-center text-[13px] text-content-muted">
         ¿Ya tienes cuenta?{' '}
