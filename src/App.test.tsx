@@ -27,14 +27,14 @@ describe('application routes', () => {
     })
   })
 
-  it('opens the backend-free guided demo', async () => {
+  it('opens the Phase 1 runtime demo', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await user.click(screen.getByRole('link', { name: 'Explorar la demo' }))
 
-    expect(screen.getByRole('heading', { name: /operación logística entendible/i })).toBeInTheDocument()
-    expect(screen.getByText('Envíos activos')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /interfaz viva/i })).toBeInTheDocument()
+    expect(screen.getByText('El renderer está listo.')).toBeInTheDocument()
   })
 
   it('keeps authentication visible and limits the burger menu to the demo', async () => {

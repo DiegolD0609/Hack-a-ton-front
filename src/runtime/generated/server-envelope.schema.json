@@ -1,0 +1,1919 @@
+{
+  "$defs": {
+    "ActionAcceptedEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/ActionAcceptedPayload"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "ACTION_ACCEPTED",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "runId",
+        "sequence",
+        "timestamp",
+        "payload"
+      ],
+      "title": "ActionAcceptedEnvelope",
+      "type": "object"
+    },
+    "ActionAcceptedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "actionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^act_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Actionid",
+          "type": "string"
+        },
+        "decisionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^dec_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Decisionid",
+          "type": "string"
+        },
+        "event": {
+          "$ref": "#/$defs/RunEvent"
+        },
+        "idempotencyKey": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^idem_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Idempotencykey",
+          "type": "string"
+        },
+        "projection": {
+          "$ref": "#/$defs/RunProjection"
+        }
+      },
+      "required": [
+        "event",
+        "projection",
+        "idempotencyKey",
+        "decisionId",
+        "actionId"
+      ],
+      "title": "ActionAcceptedPayload",
+      "type": "object"
+    },
+    "ActionDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "actionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^act_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Actionid",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "payloadSchema": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payloadschema",
+          "type": "object"
+        },
+        "requiresHuman": {
+          "title": "Requireshuman",
+          "type": "boolean"
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Risk",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actionId",
+        "label",
+        "risk",
+        "requiresHuman"
+      ],
+      "title": "ActionDefinition",
+      "type": "object"
+    },
+    "ActionRejectedEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/ActionRejectedPayload"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "ACTION_REJECTED",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "runId",
+        "sequence",
+        "timestamp",
+        "payload"
+      ],
+      "title": "ActionRejectedEnvelope",
+      "type": "object"
+    },
+    "ActionRejectedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "currentStateVersion": {
+          "minimum": 0,
+          "title": "Currentstateversion",
+          "type": "integer"
+        },
+        "event": {
+          "$ref": "#/$defs/RunEvent"
+        },
+        "idempotencyKey": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^idem_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Idempotencykey",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "code",
+        "message",
+        "idempotencyKey",
+        "currentStateVersion"
+      ],
+      "title": "ActionRejectedPayload",
+      "type": "object"
+    },
+    "AlertNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/AlertProps"
+        },
+        "type": {
+          "const": "alert",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "AlertNode",
+      "type": "object"
+    },
+    "AlertProps": {
+      "additionalProperties": false,
+      "properties": {
+        "emphasis": {
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "message",
+        "emphasis"
+      ],
+      "title": "AlertProps",
+      "type": "object"
+    },
+    "CompareNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/CompareProps"
+        },
+        "type": {
+          "const": "compare",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "CompareNode",
+      "type": "object"
+    },
+    "CompareProps": {
+      "additionalProperties": false,
+      "properties": {
+        "leftLabel": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Leftlabel",
+          "type": "string"
+        },
+        "rightLabel": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Rightlabel",
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/CompareRow"
+          },
+          "minItems": 1,
+          "title": "Rows",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "leftLabel",
+        "rightLabel",
+        "rows"
+      ],
+      "title": "CompareProps",
+      "type": "object"
+    },
+    "CompareRow": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before"
+        },
+        "key": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "same",
+            "changed",
+            "improved",
+            "worse",
+            "attention"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "before",
+        "after",
+        "outcome"
+      ],
+      "title": "CompareRow",
+      "type": "object"
+    },
+    "DecisionAction": {
+      "additionalProperties": false,
+      "properties": {
+        "actionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^act_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Actionid",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "requiresConfirmation": {
+          "default": false,
+          "title": "Requiresconfirmation",
+          "type": "boolean"
+        },
+        "style": {
+          "default": "secondary",
+          "enum": [
+            "primary",
+            "secondary",
+            "danger"
+          ],
+          "title": "Style",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actionId",
+        "label"
+      ],
+      "title": "DecisionAction",
+      "type": "object"
+    },
+    "DecisionPanelNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/DecisionPanelProps"
+        },
+        "type": {
+          "const": "decisionPanel",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "DecisionPanelNode",
+      "type": "object"
+    },
+    "DecisionPanelProps": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/DecisionAction"
+          },
+          "minItems": 1,
+          "title": "Actions",
+          "type": "array"
+        },
+        "decisionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^dec_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Decisionid",
+          "type": "string"
+        },
+        "emphasis": {
+          "default": "warning",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "errorMessage": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errormessage"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "status": {
+          "default": "idle",
+          "enum": [
+            "idle",
+            "submitting",
+            "accepted",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decisionId",
+        "title",
+        "actions"
+      ],
+      "title": "DecisionPanelProps",
+      "type": "object"
+    },
+    "DecisionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Context",
+          "type": "object"
+        },
+        "decisionId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^dec_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Decisionid",
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "requestedAt": {
+          "format": "date-time",
+          "title": "Requestedat",
+          "type": "string"
+        },
+        "stepId": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^step_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Stepid",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decisionId",
+        "stepId",
+        "title",
+        "prompt",
+        "requestedAt"
+      ],
+      "title": "DecisionRequest",
+      "type": "object"
+    },
+    "ErrorEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/ErrorPayload"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "ERROR",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "runId",
+        "sequence",
+        "timestamp",
+        "payload"
+      ],
+      "title": "ErrorEnvelope",
+      "type": "object"
+    },
+    "ErrorPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "event": {
+          "$ref": "#/$defs/RunEvent"
+        },
+        "message": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "title": "ErrorPayload",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "KeyValueItem": {
+      "additionalProperties": false,
+      "properties": {
+        "emphasis": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "key": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "value"
+      ],
+      "title": "KeyValueItem",
+      "type": "object"
+    },
+    "KeyValueNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/KeyValueProps"
+        },
+        "type": {
+          "const": "keyValue",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "KeyValueNode",
+      "type": "object"
+    },
+    "KeyValueProps": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Columns",
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/KeyValueItem"
+          },
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "KeyValueProps",
+      "type": "object"
+    },
+    "MetricNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/MetricProps"
+        },
+        "type": {
+          "const": "metric",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "MetricNode",
+      "type": "object"
+    },
+    "MetricProps": {
+      "additionalProperties": false,
+      "properties": {
+        "emphasis": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "supportingText": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supportingtext"
+        },
+        "trend": {
+          "anyOf": [
+            {
+              "enum": [
+                "up",
+                "down",
+                "flat"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trend"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ],
+      "title": "MetricProps",
+      "type": "object"
+    },
+    "PageNode": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "alert": "#/$defs/AlertNode",
+                "compare": "#/$defs/CompareNode",
+                "decisionPanel": "#/$defs/DecisionPanelNode",
+                "keyValue": "#/$defs/KeyValueNode",
+                "metric": "#/$defs/MetricNode",
+                "page": "#/$defs/PageNode",
+                "section": "#/$defs/SectionNode",
+                "step": "#/$defs/StepNode",
+                "timeline": "#/$defs/TimelineNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/PageNode"
+              },
+              {
+                "$ref": "#/$defs/SectionNode"
+              },
+              {
+                "$ref": "#/$defs/MetricNode"
+              },
+              {
+                "$ref": "#/$defs/AlertNode"
+              },
+              {
+                "$ref": "#/$defs/TimelineNode"
+              },
+              {
+                "$ref": "#/$defs/KeyValueNode"
+              },
+              {
+                "$ref": "#/$defs/CompareNode"
+              },
+              {
+                "$ref": "#/$defs/DecisionPanelNode"
+              },
+              {
+                "$ref": "#/$defs/StepNode"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Children",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/PageProps"
+        },
+        "type": {
+          "const": "page",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "title": "PageNode",
+      "type": "object"
+    },
+    "PageProps": {
+      "additionalProperties": false,
+      "properties": {
+        "eyebrow": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eyebrow"
+        },
+        "subtitle": {
+          "anyOf": [
+            {
+              "maxLength": 240,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subtitle"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "PageProps",
+      "type": "object"
+    },
+    "ProjectionEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/ProjectionPayload"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "RUN_STARTED",
+            "STEP_STARTED",
+            "STEP_COMPLETED",
+            "STATE_UPDATED",
+            "DECISION_REQUIRED",
+            "RUN_PAUSED",
+            "RUN_RESUMED",
+            "RUN_COMPLETED"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "runId",
+        "sequence",
+        "timestamp",
+        "payload"
+      ],
+      "title": "ProjectionEnvelope",
+      "type": "object"
+    },
+    "ProjectionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/RunEvent"
+        },
+        "projection": {
+          "$ref": "#/$defs/RunProjection"
+        }
+      },
+      "required": [
+        "event",
+        "projection"
+      ],
+      "title": "ProjectionPayload",
+      "type": "object"
+    },
+    "RunEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "eventId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^evt_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "stateVersion": {
+          "minimum": 0,
+          "title": "Stateversion",
+          "type": "integer"
+        },
+        "stepId": {
+          "anyOf": [
+            {
+              "maxLength": 133,
+              "minLength": 6,
+              "pattern": "^step_[a-z0-9][a-z0-9_-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stepid"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$",
+          "title": "Type",
+          "type": "string"
+        },
+        "workflowId": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^wf_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Workflowid",
+          "type": "string"
+        },
+        "workflowVersion": {
+          "minimum": 1,
+          "title": "Workflowversion",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eventId",
+        "runId",
+        "workflowId",
+        "workflowVersion",
+        "sequence",
+        "stateVersion",
+        "type",
+        "timestamp"
+      ],
+      "title": "RunEvent",
+      "type": "object"
+    },
+    "RunProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "availableActions": {
+          "items": {
+            "$ref": "#/$defs/ActionDefinition"
+          },
+          "title": "Availableactions",
+          "type": "array"
+        },
+        "currentStep": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunStepProjection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lastSequence": {
+          "minimum": 0,
+          "title": "Lastsequence",
+          "type": "integer"
+        },
+        "operation": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Operation",
+          "type": "object"
+        },
+        "pendingDecision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recentEvents": {
+          "items": {
+            "$ref": "#/$defs/RunEvent"
+          },
+          "maxItems": 50,
+          "title": "Recentevents",
+          "type": "array"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "stateVersion": {
+          "minimum": 0,
+          "title": "Stateversion",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "created",
+            "running",
+            "paused",
+            "completed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "workflowId": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^wf_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Workflowid",
+          "type": "string"
+        },
+        "workflowVersion": {
+          "minimum": 1,
+          "title": "Workflowversion",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "runId",
+        "workflowId",
+        "workflowVersion",
+        "stateVersion",
+        "lastSequence",
+        "status"
+      ],
+      "title": "RunProjection",
+      "type": "object"
+    },
+    "RunStepProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^step_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "objective": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "active",
+            "completed",
+            "attention",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "title",
+        "status"
+      ],
+      "title": "RunStepProjection",
+      "type": "object"
+    },
+    "SectionNode": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "alert": "#/$defs/AlertNode",
+                "compare": "#/$defs/CompareNode",
+                "decisionPanel": "#/$defs/DecisionPanelNode",
+                "keyValue": "#/$defs/KeyValueNode",
+                "metric": "#/$defs/MetricNode",
+                "page": "#/$defs/PageNode",
+                "section": "#/$defs/SectionNode",
+                "step": "#/$defs/StepNode",
+                "timeline": "#/$defs/TimelineNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/PageNode"
+              },
+              {
+                "$ref": "#/$defs/SectionNode"
+              },
+              {
+                "$ref": "#/$defs/MetricNode"
+              },
+              {
+                "$ref": "#/$defs/AlertNode"
+              },
+              {
+                "$ref": "#/$defs/TimelineNode"
+              },
+              {
+                "$ref": "#/$defs/KeyValueNode"
+              },
+              {
+                "$ref": "#/$defs/CompareNode"
+              },
+              {
+                "$ref": "#/$defs/DecisionPanelNode"
+              },
+              {
+                "$ref": "#/$defs/StepNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/SectionProps"
+        },
+        "type": {
+          "const": "section",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "SectionNode",
+      "type": "object"
+    },
+    "SectionProps": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "default": 1,
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Columns",
+          "type": "integer"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "emphasis": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "title": "SectionProps",
+      "type": "object"
+    },
+    "StepNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/StepProps"
+        },
+        "type": {
+          "const": "step",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "StepNode",
+      "type": "object"
+    },
+    "StepProps": {
+      "additionalProperties": false,
+      "properties": {
+        "emphasis": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "objective": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "active",
+            "completed",
+            "attention",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "stepId": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^step_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Stepid",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "attention",
+                "fail",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        }
+      },
+      "required": [
+        "stepId",
+        "title",
+        "status"
+      ],
+      "title": "StepProps",
+      "type": "object"
+    },
+    "TimelineItem": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "id": {
+          "maxLength": 133,
+          "minLength": 6,
+          "pattern": "^step_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "active",
+            "completed",
+            "attention",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status"
+      ],
+      "title": "TimelineItem",
+      "type": "object"
+    },
+    "TimelineNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/TimelineProps"
+        },
+        "type": {
+          "const": "timeline",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "TimelineNode",
+      "type": "object"
+    },
+    "TimelineProps": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/TimelineItem"
+          },
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "TimelineProps",
+      "type": "object"
+    },
+    "UISpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowedActions": {
+          "items": {
+            "$ref": "#/$defs/ActionDefinition"
+          },
+          "title": "Allowedactions",
+          "type": "array"
+        },
+        "generatedBy": {
+          "enum": [
+            "deterministic",
+            "llm",
+            "fallback"
+          ],
+          "title": "Generatedby",
+          "type": "string"
+        },
+        "layout": {
+          "$ref": "#/$defs/PageNode"
+        },
+        "reason": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "stateVersion": {
+          "minimum": 0,
+          "title": "Stateversion",
+          "type": "integer"
+        },
+        "workflowId": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^wf_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Workflowid",
+          "type": "string"
+        },
+        "workflowVersion": {
+          "minimum": 1,
+          "title": "Workflowversion",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "runId",
+        "workflowId",
+        "workflowVersion",
+        "stateVersion",
+        "generatedBy",
+        "reason",
+        "layout"
+      ],
+      "title": "UISpec",
+      "type": "object"
+    },
+    "UIUpdatedEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/UIUpdatedPayload"
+        },
+        "runId": {
+          "maxLength": 132,
+          "minLength": 5,
+          "pattern": "^run_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Runid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1",
+          "default": "1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "UI_UPDATED",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "runId",
+        "sequence",
+        "timestamp",
+        "payload"
+      ],
+      "title": "UIUpdatedEnvelope",
+      "type": "object"
+    },
+    "UIUpdatedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/RunEvent"
+        },
+        "projection": {
+          "$ref": "#/$defs/RunProjection"
+        },
+        "uiSpec": {
+          "$ref": "#/$defs/UISpec"
+        }
+      },
+      "required": [
+        "event",
+        "projection",
+        "uiSpec"
+      ],
+      "title": "UIUpdatedPayload",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "ACTION_ACCEPTED": "#/$defs/ActionAcceptedEnvelope",
+      "ACTION_REJECTED": "#/$defs/ActionRejectedEnvelope",
+      "DECISION_REQUIRED": "#/$defs/ProjectionEnvelope",
+      "ERROR": "#/$defs/ErrorEnvelope",
+      "RUN_COMPLETED": "#/$defs/ProjectionEnvelope",
+      "RUN_PAUSED": "#/$defs/ProjectionEnvelope",
+      "RUN_RESUMED": "#/$defs/ProjectionEnvelope",
+      "RUN_STARTED": "#/$defs/ProjectionEnvelope",
+      "STATE_UPDATED": "#/$defs/ProjectionEnvelope",
+      "STEP_COMPLETED": "#/$defs/ProjectionEnvelope",
+      "STEP_STARTED": "#/$defs/ProjectionEnvelope",
+      "UI_UPDATED": "#/$defs/UIUpdatedEnvelope"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ProjectionEnvelope"
+    },
+    {
+      "$ref": "#/$defs/UIUpdatedEnvelope"
+    },
+    {
+      "$ref": "#/$defs/ActionAcceptedEnvelope"
+    },
+    {
+      "$ref": "#/$defs/ActionRejectedEnvelope"
+    },
+    {
+      "$ref": "#/$defs/ErrorEnvelope"
+    }
+  ]
+}
