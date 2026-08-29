@@ -63,9 +63,44 @@
   --color-content-muted: #457b9d;
   --color-stroke: #d5e5e6;
 
+  /* Phase 0 runtime UI: semantic emphasis */
+  --color-emphasis-normal-bg: #eef6f6;
+  --color-emphasis-normal-border: #a8dadc;
+  --color-emphasis-normal-fg: #1d3557;
+  --color-emphasis-warning-bg: #fff6e8;
+  --color-emphasis-warning-border: #f6c177;
+  --color-emphasis-warning-fg: #8a3d00;
+  --color-emphasis-critical-bg: #fff1f0;
+  --color-emphasis-critical-border: #fda29b;
+  --color-emphasis-critical-fg: #8f1d18;
+
+  /* Phase 0 runtime UI: one semantic spacing scale */
+  --spacing-ui-1: 0.25rem;
+  --spacing-ui-2: 0.5rem;
+  --spacing-ui-3: 0.75rem;
+  --spacing-ui-4: 1rem;
+  --spacing-ui-6: 1.5rem;
+  --spacing-ui-8: 2rem;
+  --spacing-ui-12: 3rem;
+
+  /* Phase 0 runtime UI: hierarchy */
+  --text-ui-display: 2rem;
+  --text-ui-display--line-height: 1.15;
+  --text-ui-section: 1.5rem;
+  --text-ui-section--line-height: 1.25;
+  --text-ui-title: 1rem;
+  --text-ui-title--line-height: 1.4;
+  --text-ui-body: 0.9375rem;
+  --text-ui-body--line-height: 1.6;
+  --text-ui-label: 0.8125rem;
+  --text-ui-label--line-height: 1.4;
+  --text-ui-caption: 0.75rem;
+  --text-ui-caption--line-height: 1.4;
+
   --radius-control: 0.75rem;
   --radius-card: 1.5rem;
   --shadow-card: 0 18px 50px -28px rgb(29 53 87 / 0.42);
+  --ease-ui: 200ms;
 }
 
 :root {
@@ -141,6 +176,18 @@
 
   .surface-card {
     @apply rounded-card border border-stroke bg-surface-raised shadow-card;
+  }
+
+  .emphasis-normal {
+    @apply border-emphasis-normal-border bg-emphasis-normal-bg text-emphasis-normal-fg;
+  }
+
+  .emphasis-warning {
+    @apply border-emphasis-warning-border bg-emphasis-warning-bg text-emphasis-warning-fg;
+  }
+
+  .emphasis-critical {
+    @apply border-emphasis-critical-border bg-emphasis-critical-bg text-emphasis-critical-fg;
   }
 
   .btn {

@@ -26,11 +26,27 @@ La aplicación estará disponible en `http://localhost:5173`.
 Copia `.env.example` como `.env`:
 
 ```env
-VITE_API_URL=http://localhost:8000/api
-VITE_AUTH_MODE=mock
+VITE_API_URL=http://127.0.0.1:8000
+VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 ```
 
-`VITE_AUTH_MODE=mock` permite presentar sin backend. Usa `api` para llamar a `/auth/login` y `/auth/register` bajo `VITE_API_URL`.
+En desarrollo local, `VITE_API_URL` apunta directamente a FastAPI. El build de
+Docker usa `http://localhost:8000/api`, que Nginx proxifica al backend configurado
+en `BACKEND_URL`.
+
+`VITE_DEMO_TOKEN` debe coincidir con `DEMO_TOKEN` del backend para el handshake
+WebSocket. Es un control exclusivo de la demo y queda visible en el bundle Vite;
+no debe reutilizarse como secreto de producción.
+
+## Contratos congelados (Phase 0)
+
+El espejo TypeScript de `RunProjection`, `UISpec`, `ActionEvent`, `RunEvent`,
+los nueve nodos permitidos y el envelope WebSocket vive en
+`src/runtime/contracts.ts`. La autoridad ejecutable es Pydantic en el backend;
+ambos archivos se actualizan juntos y conservan `schemaVersion = "1"`.
+
+Los tokens semánticos del runtime (spacing, jerarquía y emphasis
+normal/warning/critical) están en `src/index.css`.
 
 ## Comandos
 
@@ -65,8 +81,13 @@ GitHub Actions ejecuta lint, pruebas y build en cada pull request y push a `main
 También se incluye una configuración Docker con Nginx:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
+
+El compose levanta solo el frontend en `http://localhost:3000` y proxifica
+`/api` al backend del host en `http://localhost:8000`; el backend se ejecuta
+desde su propio repositorio.
 
 Antes de una presentación ejecuta:
 

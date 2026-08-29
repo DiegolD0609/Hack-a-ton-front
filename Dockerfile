@@ -16,7 +16,9 @@ COPY . .
 # Pass them with --build-arg or a .env file:
 #   docker build --build-arg VITE_API_URL=https://api.example.com .
 ARG VITE_API_URL
+ARG VITE_DEMO_TOKEN
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_DEMO_TOKEN=$VITE_DEMO_TOKEN
 
 RUN npm run build
 
