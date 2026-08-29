@@ -148,6 +148,33 @@ function uiUpdatedEnvelope(): UIUpdatedEnvelope {
   }
 }
 
+function llmUpgradeEnvelope(): UIUpdatedEnvelope {
+  const baseline = uiUpdatedEnvelope()
+  const event: RunEvent = {
+    ...baseline.payload.event,
+    eventId: 'evt_ui_updated_2',
+    sequence: 2,
+    type: 'UI_UPDATED',
+  }
+  return {
+    ...baseline,
+    sequence: 2,
+    payload: {
+      event,
+      projection: {
+        ...baseline.payload.projection,
+        lastSequence: 2,
+        recentEvents: [event],
+      },
+      uiSpec: {
+        ...baseline.payload.uiSpec,
+        generatedBy: 'llm',
+        reason: 'La jerarquía LLM concentra la decisión pendiente.',
+      },
+    },
+  }
+}
+
 class FakeSocket implements RuntimeSocket {
   readyState = 0
   onopen: ((event: Event) => void) | null = null
@@ -209,6 +236,8 @@ function RuntimeHarness({
       <span data-testid="connection-status">{runtime.connectionStatus}</span>
       <span data-testid="invalid-message-count">{runtime.invalidMessageCount}</span>
       <span data-testid="runtime-transport">{runtime.transport}</span>
+      <span data-testid="ui-spec-generated-by">{runtime.uiSpec?.generatedBy}</span>
+      <span data-testid="ui-spec-reason">{runtime.uiSpec?.reason}</span>
       {runtime.uiSpec ? (
         <Renderer
           uiSpec={runtime.uiSpec}
@@ -339,6 +368,18 @@ describe('runtime renderer', () => {
     expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"stateVersion": 1')
   })
 
+  it('shows the LLM provenance and reason in the inspector', async () => {
+    const user = userEvent.setup()
+    const uiSpec = llmUpgradeEnvelope().payload.uiSpec
+    render(<UISpecInspector uiSpec={uiSpec} />)
+
+    await user.click(screen.getByRole('button', { name: 'Inspeccionar UISpec' }))
+
+    expect(screen.getByText('LLM')).toBeInTheDocument()
+    expect(screen.getByText(uiSpec.reason)).toBeInTheDocument()
+    expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"generatedBy": "llm"')
+  })
+
   it('isolates unknown and broken nodes without losing valid siblings', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -429,6 +470,23 @@ describe('run reducer', () => {
 })
 
 describe('run WebSocket loop', () => {
+  it('replaces deterministic metadata with the later LLM UI_UPDATED envelope', async () => {
+    const socket = new FakeSocket()
+    render(<RuntimeHarness socketFactory={() => socket} />)
+    act(() => socket.open())
+
+    act(() => socket.receive(uiUpdatedEnvelope()))
+    expect(await screen.findByTestId('ui-spec-generated-by')).toHaveTextContent('deterministic')
+
+    act(() => socket.receive(llmUpgradeEnvelope()))
+    await waitFor(() =>
+      expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('llm'),
+    )
+    expect(screen.getByTestId('ui-spec-reason')).toHaveTextContent(
+      'La jerarquía LLM concentra la decisión pendiente.',
+    )
+  })
+
   it('receives UISpec, sends ActionEvent, and displays ACTION_ACCEPTED', async () => {
     const user = userEvent.setup()
     const socket = new FakeSocket()
@@ -522,6 +580,38 @@ describe('run WebSocket loop', () => {
     await waitFor(() => expect(snapshotFetcher).toHaveBeenCalledTimes(2))
     expect(screen.getByTestId('runtime-transport')).toHaveTextContent('websocket')
     expect(screen.getByText('9 días')).toBeInTheDocument()
+  })
+
+  it('uses generatedBy and reason from the LLM snapshot after reconnecting', async () => {
+    const sockets = [new FakeSocket(), new FakeSocket()]
+    const socketFactory = vi.fn(() => sockets[socketFactory.mock.calls.length - 1])
+    const snapshotFetcher = vi
+      .fn<SnapshotFetcher>()
+      .mockResolvedValueOnce(uiUpdatedEnvelope())
+      .mockResolvedValueOnce(llmUpgradeEnvelope())
+
+    render(
+      <RuntimeHarness
+        socketFactory={socketFactory}
+        snapshotFetcher={snapshotFetcher}
+        reconnectDelayMs={1}
+      />,
+    )
+    act(() => sockets[0].open())
+    await waitFor(() =>
+      expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('deterministic'),
+    )
+
+    act(() => sockets[0].closeFromServer())
+    await waitFor(() => expect(socketFactory).toHaveBeenCalledTimes(2))
+    act(() => sockets[1].open())
+
+    await waitFor(() =>
+      expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('llm'),
+    )
+    expect(screen.getByTestId('ui-spec-reason')).toHaveTextContent(
+      'La jerarquía LLM concentra la decisión pendiente.',
+    )
   })
 
   it('activates polling by flag when WebSocket creation fails', async () => {
