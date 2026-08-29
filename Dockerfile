@@ -15,7 +15,7 @@ COPY . .
 # Vite exposes VITE_* env vars at BUILD time.
 # Pass them with --build-arg or a .env file:
 #   docker build --build-arg VITE_API_URL=https://api.example.com .
-ARG VITE_API_URL
+ARG VITE_API_URL=/api
 ARG VITE_DEMO_TOKEN
 ARG VITE_RUNTIME_POLLING=false
 ENV VITE_API_URL=$VITE_API_URL
@@ -29,8 +29,9 @@ RUN npm run build
 # ──────────────────────────────────────────────
 FROM nginx:stable-alpine AS production
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+# Remove default nginx config and keep the small Railway container to one worker.
+RUN rm /etc/nginx/conf.d/default.conf \
+    && sed -i 's/worker_processes  auto;/worker_processes  1;/' /etc/nginx/nginx.conf
 
 # Custom nginx config with SPA fallback and API proxy
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -43,6 +44,9 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- "http://127.0.0.1:${PORT:-80}/health" >/dev/null || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
