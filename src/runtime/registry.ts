@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
 import {
   Alert,
+  Compare,
   DecisionPanel,
   GenericStepCard,
   KeyValue,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui-kit'
 import type {
   AlertProps,
+  CompareProps,
   DecisionPanelProps,
   KeyValueProps,
   MetricProps,
@@ -61,6 +63,10 @@ export const componentRegistry: Readonly<Record<RegisteredComponentType, Registr
   keyValue: {
     acceptsChildren: false,
     render: ({ props }) => createElement(KeyValue, props as KeyValueProps),
+  },
+  compare: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(Compare, props as CompareProps),
   },
   decisionPanel: {
     acceptsChildren: false,

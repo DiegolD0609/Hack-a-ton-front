@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import UISpecInspector from '@/inspector/UISpecInspector'
 import Renderer from '@/runtime/Renderer'
 import type {
   ActionSubmittedEnvelope,
@@ -13,7 +14,10 @@ import type {
   UISpec,
 } from '@/runtime/contracts'
 import { createInitialRunState, runRuntimeReducer } from '@/runtime/reducer'
-import useRunSocket, { type RuntimeSocket } from '@/runtime/useRunSocket'
+import useRunSocket, {
+  type RuntimeSocket,
+  type SnapshotFetcher,
+} from '@/runtime/useRunSocket'
 import { validateUISpec } from '@/runtime/validation'
 
 const RUN_ID = 'run_demo_skeleton' as RunId
@@ -168,20 +172,43 @@ class FakeSocket implements RuntimeSocket {
   close() {
     this.readyState = 3
   }
+
+  closeFromServer(reason = 'connection lost') {
+    this.readyState = 3
+    this.onclose?.(new CloseEvent('close', { reason }))
+  }
 }
 
-function RuntimeHarness({ socketFactory }: { socketFactory: (url: string) => RuntimeSocket }) {
+interface RuntimeHarnessProps {
+  socketFactory: (url: string) => RuntimeSocket
+  snapshotFetcher?: SnapshotFetcher
+  pollingEnabled?: boolean
+  reconnectDelayMs?: number
+}
+
+const snapshotFixtureFetcher: SnapshotFetcher = async () => uiUpdatedEnvelope()
+
+function RuntimeHarness({
+  socketFactory,
+  snapshotFetcher = snapshotFixtureFetcher,
+  pollingEnabled = false,
+  reconnectDelayMs = 1_000,
+}: RuntimeHarnessProps) {
   const runtime = useRunSocket({
     runId: RUN_ID,
     apiUrl: 'http://127.0.0.1:8000',
     token: 'demo-token',
     socketFactory,
+    snapshotFetcher,
+    pollingEnabled,
+    reconnectDelayMs,
   })
 
   return (
     <div>
       <span data-testid="connection-status">{runtime.connectionStatus}</span>
       <span data-testid="invalid-message-count">{runtime.invalidMessageCount}</span>
+      <span data-testid="runtime-transport">{runtime.transport}</span>
       {runtime.uiSpec ? (
         <Renderer
           uiSpec={runtime.uiSpec}
@@ -265,6 +292,51 @@ describe('runtime renderer', () => {
     expect(screen.getByText('Atención requerida')).toBeInTheDocument()
     expect(screen.getByText('Decisión pendiente')).toBeInTheDocument()
     expect(screen.getByText('Días de retraso')).toBeInTheDocument()
+  })
+
+  it('renders the ninth registry component as a generic comparison', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') {
+      throw new Error('fixture must contain a section')
+    }
+    section.children.push({
+      id: 'ui_runtime_compare',
+      type: 'compare',
+      props: {
+        title: 'Cambio de escenario',
+        leftLabel: 'Antes',
+        rightLabel: 'Después',
+        rows: [
+          {
+            key: 'days',
+            label: 'Días recuperados',
+            before: 0,
+            after: 6,
+            outcome: 'improved',
+          },
+        ],
+      },
+    })
+
+    render(<Renderer uiSpec={uiSpec} />)
+
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getByText('Días recuperados')).toBeInTheDocument()
+    expect(screen.getByText('Mejoró')).toBeInTheDocument()
+  })
+
+  it('shows generatedBy, reason, stateVersion, and live JSON in the inspector', async () => {
+    const user = userEvent.setup()
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    render(<UISpecInspector uiSpec={uiSpec} />)
+
+    await user.click(screen.getByRole('button', { name: 'Inspeccionar UISpec' }))
+
+    expect(screen.getByRole('dialog', { name: 'UISpec validada' })).toBeInTheDocument()
+    expect(screen.getByText('Determinista')).toBeInTheDocument()
+    expect(screen.getByText(uiSpec.reason)).toBeInTheDocument()
+    expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"stateVersion": 1')
   })
 
   it('isolates unknown and broken nodes without losing valid siblings', () => {
@@ -426,5 +498,48 @@ describe('run WebSocket loop', () => {
 
     await waitFor(() => expect(screen.getByTestId('invalid-message-count')).toHaveTextContent('1'))
     expect(screen.getByText('9 días')).toBeInTheDocument()
+  })
+
+  it('reconnects and refetches the latest persisted snapshot', async () => {
+    const sockets = [new FakeSocket(), new FakeSocket()]
+    const socketFactory = vi.fn(() => sockets[socketFactory.mock.calls.length - 1])
+    const snapshotFetcher = vi.fn(async () => uiUpdatedEnvelope())
+
+    render(
+      <RuntimeHarness
+        socketFactory={socketFactory}
+        snapshotFetcher={snapshotFetcher}
+        reconnectDelayMs={1}
+      />,
+    )
+    act(() => sockets[0].open())
+    await waitFor(() => expect(snapshotFetcher).toHaveBeenCalledTimes(1))
+
+    act(() => sockets[0].closeFromServer())
+    await waitFor(() => expect(socketFactory).toHaveBeenCalledTimes(2))
+    act(() => sockets[1].open())
+
+    await waitFor(() => expect(snapshotFetcher).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('runtime-transport')).toHaveTextContent('websocket')
+    expect(screen.getByText('9 días')).toBeInTheDocument()
+  })
+
+  it('activates polling by flag when WebSocket creation fails', async () => {
+    const snapshotFetcher = vi.fn(async () => uiUpdatedEnvelope())
+    const socketFactory = vi.fn(() => {
+      throw new Error('socket unavailable')
+    })
+
+    render(
+      <RuntimeHarness
+        socketFactory={socketFactory}
+        snapshotFetcher={snapshotFetcher}
+        pollingEnabled
+        reconnectDelayMs={10_000}
+      />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('runtime-transport')).toHaveTextContent('polling'))
+    expect(await screen.findByText('9 días')).toBeInTheDocument()
   })
 })

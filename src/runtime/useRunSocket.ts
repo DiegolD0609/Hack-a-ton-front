@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import type { DecisionActionRequest } from '@/components/ui-kit'
 import {
   SCHEMA_VERSION,
@@ -28,16 +28,24 @@ export interface RuntimeSocket {
   close(code?: number, reason?: string): void
 }
 
+export type RuntimeTransport = 'offline' | 'websocket' | 'polling'
+export type SnapshotFetcher = (url: string) => Promise<unknown>
+
 export interface UseRunSocketOptions {
   runId: RunId
   apiUrl: string
   token: string
   enabled?: boolean
+  pollingEnabled?: boolean
+  pollingIntervalMs?: number
+  reconnectDelayMs?: number
   socketFactory?: (url: string) => RuntimeSocket
+  snapshotFetcher?: SnapshotFetcher
 }
 
 export interface UseRunSocketResult extends RunRuntimeState {
   socketUrl: string
+  transport: RuntimeTransport
   submitAction: (request: DecisionActionRequest, payload?: JsonValue) => boolean
 }
 
@@ -45,9 +53,24 @@ function defaultSocketFactory(url: string): RuntimeSocket {
   return new WebSocket(url)
 }
 
+async function defaultSnapshotFetcher(url: string): Promise<unknown> {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!response.ok) {
+    throw new Error(`El snapshot respondió ${response.status}.`)
+  }
+  return response.json() as Promise<unknown>
+}
+
 function createIdempotencyKey(): IdempotencyKey {
   const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${fallbackId++}`
   return `idem_${randomPart.toLowerCase()}` as IdempotencyKey
+}
+
+function apiEndpoint(apiUrl: string, path: string): string {
+  const url = new URL(apiUrl, window.location.origin)
+  url.pathname = `${url.pathname.replace(/\/$/, '')}${path}`
+  url.search = ''
+  return url.toString()
 }
 
 export function buildRunSocketUrl(apiUrl: string, runId: RunId, token: string): string {
@@ -57,6 +80,10 @@ export function buildRunSocketUrl(apiUrl: string, runId: RunId, token: string): 
   base.search = ''
   base.searchParams.set('token', token)
   return base.toString()
+}
+
+export function buildRunSnapshotUrl(apiUrl: string, runId: RunId): string {
+  return apiEndpoint(apiUrl, `/runs/${encodeURIComponent(runId)}/snapshot`)
 }
 
 async function decodeMessageData(data: unknown): Promise<unknown> {
@@ -81,108 +108,206 @@ export default function useRunSocket({
   apiUrl,
   token,
   enabled = true,
+  pollingEnabled = false,
+  pollingIntervalMs = 2_000,
+  reconnectDelayMs = 1_000,
   socketFactory = defaultSocketFactory,
+  snapshotFetcher = defaultSnapshotFetcher,
 }: UseRunSocketOptions): UseRunSocketResult {
   const [state, dispatch] = useReducer(runRuntimeReducer, runId, createInitialRunState)
+  const [transport, setTransport] = useState<RuntimeTransport>('offline')
   const socketRef = useRef<RuntimeSocket | null>(null)
   const socketUrl = buildRunSocketUrl(apiUrl, runId, token)
+  const snapshotUrl = buildRunSnapshotUrl(apiUrl, runId)
 
   useEffect(() => {
     dispatch({ type: 'RESET', runId })
+    setTransport('offline')
     if (!enabled) {
       return
     }
 
-    dispatch({ type: 'CONNECTING' })
     let disposed = false
-    let socket: RuntimeSocket
+    let socket: RuntimeSocket | null = null
+    let reconnectTimer: number | null = null
+    let pollingTimer: number | null = null
+    let connectionTimeout: number | null = null
+    let reconnectAttempt = 0
+    let snapshotInFlight = false
 
-    try {
-      socket = socketFactory(socketUrl)
-      socketRef.current = socket
-    } catch {
-      dispatch({
-        type: 'SOCKET_ERROR',
-        message: 'No fue posible crear la conexión WebSocket.',
-      })
-      return
-    }
-
-    const connectionTimeout = window.setTimeout(() => {
-      if (!disposed && socket.readyState !== SOCKET_OPEN) {
-        dispatch({
-          type: 'SOCKET_ERROR',
-          message: 'El backend no abrió el WebSocket en 5 segundos.',
-        })
-        socket.close(4000, 'connection timeout')
-      }
-    }, 5_000)
-
-    socket.onopen = () => {
-      if (!disposed) {
+    const clearConnectionTimeout = () => {
+      if (connectionTimeout !== null) {
         window.clearTimeout(connectionTimeout)
+        connectionTimeout = null
+      }
+    }
+
+    const applySnapshot = async () => {
+      if (disposed || snapshotInFlight) {
+        return
+      }
+      snapshotInFlight = true
+      try {
+        const input = await snapshotFetcher(snapshotUrl)
+        if (disposed) {
+          return
+        }
+        const result = validateServerEnvelope(input)
+        if (!result.ok) {
+          dispatch({ type: 'INVALID_MESSAGE', errors: result.errors })
+          return
+        }
+        if (result.value.runId !== runId) {
+          dispatch({ type: 'INVALID_MESSAGE', errors: ['runId no coincide con el snapshot'] })
+          return
+        }
+        dispatch({ type: 'SERVER_MESSAGE', envelope: result.value })
+      } catch {
+        // The next polling tick or WebSocket replay can recover a snapshot.
+      } finally {
+        snapshotInFlight = false
+      }
+    }
+
+    const stopPolling = () => {
+      if (pollingTimer !== null) {
+        window.clearInterval(pollingTimer)
+        pollingTimer = null
+      }
+    }
+
+    const startPolling = () => {
+      if (!pollingEnabled || disposed || pollingTimer !== null) {
+        return
+      }
+      setTransport('polling')
+      void applySnapshot()
+      pollingTimer = window.setInterval(() => void applySnapshot(), pollingIntervalMs)
+    }
+
+    const connect = () => {
+      if (disposed) {
+        return
+      }
+      dispatch({ type: 'CONNECTING' })
+      try {
+        socket = socketFactory(socketUrl)
+        socketRef.current = socket
+      } catch {
+        dispatch({ type: 'SOCKET_ERROR', message: 'No fue posible crear la conexión WebSocket.' })
+        startPolling()
+        reconnectAttempt += 1
+        reconnectTimer = window.setTimeout(
+          connect,
+          Math.min(reconnectDelayMs * reconnectAttempt, 10_000),
+        )
+        return
+      }
+
+      const activeSocket = socket
+      connectionTimeout = window.setTimeout(() => {
+        if (!disposed && activeSocket.readyState !== SOCKET_OPEN) {
+          dispatch({
+            type: 'SOCKET_ERROR',
+            message: 'El backend no abrió el WebSocket en 5 segundos.',
+          })
+          startPolling()
+          activeSocket.close(4000, 'connection timeout')
+        }
+      }, 5_000)
+
+      activeSocket.onopen = () => {
+        if (disposed) {
+          return
+        }
+        clearConnectionTimeout()
+        reconnectAttempt = 0
+        stopPolling()
+        setTransport('websocket')
         dispatch({ type: 'CONNECTED' })
+        void applySnapshot()
+      }
+
+      activeSocket.onmessage = (event) => {
+        void decodeMessageData(event.data)
+          .then((input) => {
+            if (disposed) {
+              return
+            }
+            const result = validateServerEnvelope(input)
+            if (!result.ok) {
+              dispatch({ type: 'INVALID_MESSAGE', errors: result.errors })
+              return
+            }
+            if (result.value.runId !== runId) {
+              dispatch({ type: 'INVALID_MESSAGE', errors: ['runId no coincide con la conexión'] })
+              return
+            }
+            dispatch({ type: 'SERVER_MESSAGE', envelope: result.value })
+          })
+          .catch((error: unknown) => {
+            if (!disposed) {
+              dispatch({
+                type: 'INVALID_MESSAGE',
+                errors: [error instanceof Error ? error.message : 'Mensaje ilegible'],
+              })
+            }
+          })
+      }
+
+      activeSocket.onerror = () => {
+        if (!disposed) {
+          dispatch({ type: 'SOCKET_ERROR', message: 'La conexión WebSocket encontró un error.' })
+          startPolling()
+        }
+      }
+
+      activeSocket.onclose = (event) => {
+        if (disposed) {
+          return
+        }
+        clearConnectionTimeout()
+        dispatch({ type: 'CLOSED', reason: event.reason || 'La conexión WebSocket se cerró.' })
+        startPolling()
+        reconnectAttempt += 1
+        reconnectTimer = window.setTimeout(
+          connect,
+          Math.min(reconnectDelayMs * reconnectAttempt, 10_000),
+        )
       }
     }
 
-    socket.onmessage = (event) => {
-      void decodeMessageData(event.data)
-        .then((input) => {
-          if (disposed) {
-            return
-          }
-          const result = validateServerEnvelope(input)
-          if (!result.ok) {
-            dispatch({ type: 'INVALID_MESSAGE', errors: result.errors })
-            return
-          }
-          if (result.value.runId !== runId) {
-            dispatch({ type: 'INVALID_MESSAGE', errors: ['runId no coincide con la conexión'] })
-            return
-          }
-          dispatch({ type: 'SERVER_MESSAGE', envelope: result.value })
-        })
-        .catch((error: unknown) => {
-          if (!disposed) {
-            dispatch({
-              type: 'INVALID_MESSAGE',
-              errors: [error instanceof Error ? error.message : 'Mensaje ilegible'],
-            })
-          }
-        })
-    }
-
-    socket.onerror = () => {
-      if (!disposed) {
-        dispatch({
-          type: 'SOCKET_ERROR',
-          message: 'La conexión WebSocket encontró un error.',
-        })
-      }
-    }
-
-    socket.onclose = (event) => {
-      if (!disposed) {
-        dispatch({
-          type: 'CLOSED',
-          reason: event.reason || 'La conexión WebSocket se cerró.',
-        })
-      }
-    }
+    connect()
 
     return () => {
       disposed = true
-      window.clearTimeout(connectionTimeout)
-      socket.onopen = null
-      socket.onmessage = null
-      socket.onerror = null
-      socket.onclose = null
-      socket.close(1000, 'runtime unmounted')
+      clearConnectionTimeout()
+      stopPolling()
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer)
+      }
+      if (socket) {
+        socket.onopen = null
+        socket.onmessage = null
+        socket.onerror = null
+        socket.onclose = null
+        socket.close(1000, 'runtime unmounted')
+      }
       if (socketRef.current === socket) {
         socketRef.current = null
       }
     }
-  }, [enabled, runId, socketFactory, socketUrl])
+  }, [
+    enabled,
+    pollingEnabled,
+    pollingIntervalMs,
+    reconnectDelayMs,
+    runId,
+    snapshotFetcher,
+    snapshotUrl,
+    socketFactory,
+    socketUrl,
+  ])
 
   const submitAction = useCallback(
     (request: DecisionActionRequest, payload: JsonValue = {}): boolean => {
@@ -201,8 +326,8 @@ export default function useRunSocket({
         return false
       }
 
-      const socket = socketRef.current
-      if (!socket || socket.readyState !== SOCKET_OPEN) {
+      const activeSocket = socketRef.current
+      if (!activeSocket || activeSocket.readyState !== SOCKET_OPEN) {
         dispatch({
           type: 'ACTION_SEND_FAILED',
           idempotencyKey,
@@ -241,7 +366,7 @@ export default function useRunSocket({
       })
 
       try {
-        socket.send(JSON.stringify(envelope))
+        activeSocket.send(JSON.stringify(envelope))
         return true
       } catch {
         dispatch({
@@ -256,5 +381,5 @@ export default function useRunSocket({
     [runId, state.lastSequence, state.uiSpec],
   )
 
-  return { ...state, socketUrl, submitAction }
+  return { ...state, socketUrl, transport, submitAction }
 }

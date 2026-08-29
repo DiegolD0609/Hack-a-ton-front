@@ -1,4 +1,5 @@
 export { default as Alert } from './Alert'
+export { default as Compare } from './Compare'
 export { default as DecisionPanel } from './DecisionPanel'
 export { default as GenericStepCard } from './GenericStepCard'
 export { default as KeyValue } from './KeyValue'

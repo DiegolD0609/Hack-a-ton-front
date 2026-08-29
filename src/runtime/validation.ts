@@ -11,6 +11,7 @@ export type RegisteredComponentType =
   | 'alert'
   | 'timeline'
   | 'keyValue'
+  | 'compare'
   | 'decisionPanel'
   | 'step'
 
@@ -35,6 +36,7 @@ const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   alert: 'AlertProps',
   timeline: 'TimelineProps',
   keyValue: 'KeyValueProps',
+  compare: 'CompareProps',
   decisionPanel: 'DecisionPanelProps',
   step: 'StepProps',
 }
