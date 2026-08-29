@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
+import UISpecInspector from '@/inspector/UISpecInspector'
 import Renderer from '@/runtime/Renderer'
 import { ID_PATTERNS, type RunId, type RunProjection } from '@/runtime/contracts'
 import type { ConnectionStatus } from '@/runtime/reducer'
@@ -62,11 +63,13 @@ export default function Demo() {
   const [requestError, setRequestError] = useState<string | null>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
   const token = import.meta.env.VITE_DEMO_TOKEN || 'replace-with-a-shared-demo-token'
+  const pollingEnabled = import.meta.env.VITE_RUNTIME_POLLING === 'true'
   const runtime = useRunSocket({
     runId: runId ?? WAITING_RUN_ID,
     apiUrl,
     token,
     enabled: runId !== null,
+    pollingEnabled,
   })
 
   const performRequest = async (path: string, body?: Record<string, unknown>) => {
@@ -89,7 +92,7 @@ export default function Demo() {
   }
 
   const canAdvance =
-    runtime.connectionStatus === 'open' && runtime.projection?.status === 'running'
+    runtime.transport !== 'offline' && runtime.projection?.status === 'running'
   const runFinished = runtime.projection?.status === 'completed'
   const runPaused = runtime.projection?.status === 'paused'
 
@@ -101,10 +104,16 @@ export default function Demo() {
             {appConfig.name}
           </Link>
           <span
-            className={`rounded-full px-3 py-2 text-xs font-semibold ${connectionClasses[runtime.connectionStatus]}`}
+            className={`rounded-full px-3 py-2 text-xs font-semibold ${
+              runtime.transport === 'polling'
+                ? 'bg-emphasis-warning-bg text-emphasis-warning-fg'
+                : connectionClasses[runtime.connectionStatus]
+            }`}
             role="status"
           >
-            {connectionLabels[runtime.connectionStatus]}
+            {runtime.transport === 'polling'
+              ? 'Polling activo'
+              : connectionLabels[runtime.connectionStatus]}
           </span>
         </div>
       </header>
@@ -113,13 +122,13 @@ export default function Demo() {
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col gap-6 border-b border-stroke pb-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="eyebrow">Phase 2 · golden path determinista</p>
+              <p className="eyebrow">Phase 3 · loop humano inspeccionable</p>
               <h1 className="mt-3 max-w-3xl text-4xl leading-tight sm:text-5xl">
                 El estado del agente se convierte en una interfaz viva.
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-content-muted">
                 Inicia un run, avanza sus cinco pasos y resuelve la decisión humana sin salir del
-                WebSocket.
+                WebSocket. El inspector muestra cada upgrade determinista o LLM.
               </p>
             </div>
 
@@ -148,6 +157,7 @@ export default function Demo() {
                   <button type="button" className="btn-secondary" onClick={startNewRun}>
                     Nuevo run
                   </button>
+                  <UISpecInspector uiSpec={runtime.uiSpec} />
                   <button
                     type="button"
                     className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"

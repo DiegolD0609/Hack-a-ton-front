@@ -30,6 +30,7 @@ Copia `.env.example` como `.env`:
 ```env
 VITE_API_URL=http://127.0.0.1:8000
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
+VITE_RUNTIME_POLLING=true
 ```
 
 En desarrollo local, `VITE_API_URL` puede apuntar directamente a FastAPI. Para
@@ -91,6 +92,18 @@ respuesta del backend.
 El backend recompone y emite una nueva `UI_UPDATED` tras aceptar la acción. Los
 tests del runtime mantienen además un socket falso para validar el loop sin
 depender de infraestructura local.
+
+## Fase 3 · resiliencia e inspector
+
+El registry ya contiene las nueve primitivas congeladas, incluido `compare`.
+En cada conexión y reconexión el cliente obtiene
+`GET /runs/{id}/snapshot`; si el WebSocket cae y
+`VITE_RUNTIME_POLLING=true`, mantiene la pantalla actualizada por polling
+mientras reintenta el canal vivo.
+
+“Inspeccionar UISpec” abre el JSON vivo y expone `generatedBy`, `reason`,
+`stateVersion` y la versión del workflow. Así se puede observar el cambio de la
+UI determinista al upgrade LLM sin ocultar el contrato que llegó al renderer.
 
 ## Comandos
 
