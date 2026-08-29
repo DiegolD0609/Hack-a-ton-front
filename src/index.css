@@ -196,6 +196,14 @@
     @apply inline-flex items-center justify-center rounded-control px-3 py-3 text-sm font-semibold text-content-muted transition duration-200 hover:bg-sky/30 hover:text-content;
   }
 
+  .field-label {
+    @apply mb-2 block text-sm font-semibold text-content;
+  }
+
+  .field-control {
+    @apply w-full rounded-control border border-stroke bg-surface px-4 py-3 text-sm text-content transition duration-200 placeholder:text-content-muted/70 hover:border-content-muted focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-tinted disabled:opacity-70;
+  }
+
   .eyebrow {
     @apply text-xs font-bold uppercase tracking-[0.2em] text-signal;
   }
