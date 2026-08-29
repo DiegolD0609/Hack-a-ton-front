@@ -1,13 +1,6 @@
-import { BrowserRouter } from 'react-router-dom'
-import { AuthProvider } from '@/hooks/useAuth'
-import AppRouter from '@/middleware/AppRouter'
+import Demo from '@/pages/Demo'
+import Landing from '@/pages/Landing'
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
-    </BrowserRouter>
-  )
+  return window.location.pathname === '/demo' ? <Demo /> : <Landing />
 }

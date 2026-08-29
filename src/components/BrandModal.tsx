@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
 
 const EXIT_MS = 320
@@ -122,23 +121,9 @@ export default function BrandModal({ open, onClose }: BrandModalProps) {
           </div>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link to={appConfig.routes.demo} className="btn-primary w-full sm:w-auto" onClick={onClose}>
+            <a href={appConfig.routes.demo} className="btn-primary w-full sm:w-auto" onClick={onClose}>
               Explorar la demo
-            </Link>
-            <Link
-              to={appConfig.routes.login}
-              className="inline-flex w-full items-center justify-center px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:w-auto"
-              onClick={onClose}
-            >
-              Login
-            </Link>
-            <Link
-              to={appConfig.routes.register}
-              className="inline-flex w-full items-center justify-center px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:w-auto"
-              onClick={onClose}
-            >
-              Sign up
-            </Link>
+            </a>
           </div>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
 import UISpecInspector from '@/inspector/UISpecInspector'
 import Renderer from '@/runtime/Renderer'
@@ -100,9 +99,9 @@ export default function Demo() {
     <div className="app-shell flex flex-col">
       <header className="border-b border-stroke bg-surface">
         <div className="page-container flex items-center justify-between gap-4 py-4">
-          <Link to={appConfig.routes.home} className="font-display text-xl">
+          <a href={appConfig.routes.landing} className="font-display text-xl">
             {appConfig.name}
-          </Link>
+          </a>
           <span
             className={`rounded-full px-3 py-2 text-xs font-semibold ${
               runtime.transport === 'polling'

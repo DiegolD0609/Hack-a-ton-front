@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+        VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_DEMO_TOKEN: ${VITE_DEMO_TOKEN:-replace-with-a-shared-demo-token}
         VITE_RUNTIME_POLLING: ${VITE_RUNTIME_POLLING:-true}
     ports:
