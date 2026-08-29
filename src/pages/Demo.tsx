@@ -214,11 +214,17 @@ export default function Demo() {
 
           <section className="surface-card mt-8 min-h-80 p-5 sm:p-8" aria-live="polite">
             {runtime.uiSpec ? (
-              <Renderer
-                uiSpec={runtime.uiSpec}
-                onAction={runtime.submitAction}
-                decisionFeedback={runtime.decisionFeedback}
-              />
+              <div
+                key={`${runtime.uiSpec.stateVersion}-${runtime.uiSpec.generatedBy}`}
+                className="runtime-payload"
+                data-testid="runtime-payload"
+              >
+                <Renderer
+                  uiSpec={runtime.uiSpec}
+                  onAction={runtime.submitAction}
+                  decisionFeedback={runtime.decisionFeedback}
+                />
+              </div>
             ) : (
               <div className="flex min-h-64 items-center justify-center text-center">
                 <div className="max-w-lg">

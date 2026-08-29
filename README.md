@@ -70,6 +70,27 @@ GET ws(s)://<VITE_API_URL>/ws/runs/{runId}?token=<VITE_DEMO_TOKEN>
 Al reconectar obtiene `GET /runs/{id}/snapshot`; con
 `VITE_RUNTIME_POLLING=true` usa polling mientras recupera el WebSocket.
 
+## Fase 5 · fallbacks y freeze
+
+La `UISpec` recibida desde la API se anima durante 200 ms y conserva una vista
+vacía explícita antes del primer payload. Cerrar y reabrir la demo reconstruye
+la UI desde el snapshot persistido; si el WebSocket cae, el runtime cambia a
+polling y vuelve al canal vivo cuando la conexión se recupera.
+
+El proxy Nginx resuelve dinámicamente el host privado de `BACKEND_URL`. Esto
+permite que Railway reubique o redespliegue el backend sin dejar al frontend
+anclado a una dirección anterior.
+
+Para probar el modo determinista y local, desactiva los dos upgrades LLM en el
+backend. Después de construir las imágenes una vez, el flujo no requiere una
+API externa:
+
+```env
+LLM_UPGRADE_ENABLED=false
+GENERIC_STEP_LLM_ENABLED=false
+VITE_RUNTIME_POLLING=true
+```
+
 ## Editor de workflow
 
 `/editor` genera un `StepDefinition` genérico desde `title`, `objective`, rutas

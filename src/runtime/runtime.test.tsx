@@ -210,6 +210,7 @@ interface RuntimeHarnessProps {
   socketFactory: (url: string) => RuntimeSocket
   snapshotFetcher?: SnapshotFetcher
   pollingEnabled?: boolean
+  pollingIntervalMs?: number
   reconnectDelayMs?: number
 }
 
@@ -219,6 +220,7 @@ function RuntimeHarness({
   socketFactory,
   snapshotFetcher = snapshotFixtureFetcher,
   pollingEnabled = false,
+  pollingIntervalMs = 2_000,
   reconnectDelayMs = 1_000,
 }: RuntimeHarnessProps) {
   const runtime = useRunSocket({
@@ -228,6 +230,7 @@ function RuntimeHarness({
     socketFactory,
     snapshotFetcher,
     pollingEnabled,
+    pollingIntervalMs,
     reconnectDelayMs,
   })
 
@@ -612,6 +615,57 @@ describe('run WebSocket loop', () => {
     expect(screen.getByTestId('ui-spec-reason')).toHaveTextContent(
       'La jerarquía LLM concentra la decisión pendiente.',
     )
+  })
+
+  it('closes the runtime, reopens it from snapshot, and continues with a live action', async () => {
+    const user = userEvent.setup()
+    const sockets = [new FakeSocket(), new FakeSocket()]
+    const socketFactory = vi.fn(() => sockets[socketFactory.mock.calls.length - 1])
+    const snapshotFetcher = vi.fn(async () => uiUpdatedEnvelope())
+
+    const firstTab = render(
+      <RuntimeHarness socketFactory={socketFactory} snapshotFetcher={snapshotFetcher} />,
+    )
+    act(() => sockets[0].open())
+    expect(await screen.findByText('9 días')).toBeInTheDocument()
+
+    firstTab.unmount()
+    expect(sockets[0].readyState).toBe(3)
+
+    render(<RuntimeHarness socketFactory={socketFactory} snapshotFetcher={snapshotFetcher} />)
+    act(() => sockets[1].open())
+
+    await waitFor(() => expect(snapshotFetcher).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('runtime-transport')).toHaveTextContent('websocket')
+    await user.click(screen.getByRole('button', { name: 'Aprobar ruta' }))
+    await waitFor(() => expect(sockets[1].sent).toHaveLength(1))
+  })
+
+  it('falls back to polling after a live socket closes and applies the latest snapshot', async () => {
+    const socket = new FakeSocket()
+    const snapshotFetcher = vi
+      .fn<SnapshotFetcher>()
+      .mockResolvedValueOnce(uiUpdatedEnvelope())
+      .mockResolvedValue(llmUpgradeEnvelope())
+
+    render(
+      <RuntimeHarness
+        socketFactory={() => socket}
+        snapshotFetcher={snapshotFetcher}
+        pollingEnabled
+        pollingIntervalMs={10}
+        reconnectDelayMs={10_000}
+      />,
+    )
+    act(() => socket.open())
+    await waitFor(() =>
+      expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('deterministic'),
+    )
+
+    act(() => socket.closeFromServer())
+
+    await waitFor(() => expect(screen.getByTestId('runtime-transport')).toHaveTextContent('polling'))
+    await waitFor(() => expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('llm'))
   })
 
   it('activates polling by flag when WebSocket creation fails', async () => {
