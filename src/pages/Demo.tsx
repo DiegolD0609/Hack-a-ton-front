@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
 import Renderer from '@/runtime/Renderer'
-import { ID_PATTERNS, type RunId } from '@/runtime/contracts'
+import { ID_PATTERNS, type RunId, type RunProjection } from '@/runtime/contracts'
 import type { ConnectionStatus } from '@/runtime/reducer'
 import useRunSocket from '@/runtime/useRunSocket'
 
-const DEFAULT_RUN_ID = 'run_demo_skeleton' as RunId
+const WAITING_RUN_ID = 'run_waiting_for_backend' as RunId
 
 const connectionLabels: Record<ConnectionStatus, string> = {
-  idle: 'Sin iniciar',
+  idle: 'Sin run activo',
   connecting: 'Conectando',
   open: 'WebSocket conectado',
   closed: 'WebSocket cerrado',
@@ -24,47 +24,74 @@ const connectionClasses: Record<ConnectionStatus, string> = {
   error: 'bg-emphasis-critical-bg text-emphasis-critical-fg',
 }
 
-function currentRunId(): RunId {
+function requestedRunId(): RunId | null {
   const requested = new URLSearchParams(window.location.search).get('runId')
-  return requested && ID_PATTERNS.run.test(requested) ? (requested as RunId) : DEFAULT_RUN_ID
+  return requested && ID_PATTERNS.run.test(requested) ? (requested as RunId) : null
 }
 
-function demoSkeletonUrl(apiUrl: string): string {
+function apiEndpoint(apiUrl: string, path: string): string {
   const url = new URL(apiUrl, window.location.origin)
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/demo/skeleton`
+  url.pathname = `${url.pathname.replace(/\/$/, '')}${path}`
   url.search = ''
   return url.toString()
 }
 
+async function requestProjection(
+  apiUrl: string,
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<RunProjection> {
+  const response = await fetch(apiEndpoint(apiUrl, path), {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!response.ok) {
+    throw new Error(`El backend respondió ${response.status}.`)
+  }
+  const projection = (await response.json()) as Partial<RunProjection>
+  if (!projection.runId || !ID_PATTERNS.run.test(projection.runId)) {
+    throw new Error('El backend no devolvió un runId válido.')
+  }
+  return projection as RunProjection
+}
+
 export default function Demo() {
-  const [runId] = useState(currentRunId)
-  const [triggerState, setTriggerState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
-  const [triggerError, setTriggerError] = useState<string | null>(null)
+  const [runId, setRunId] = useState<RunId | null>(requestedRunId)
+  const [requestState, setRequestState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
+  const [requestError, setRequestError] = useState<string | null>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
   const token = import.meta.env.VITE_DEMO_TOKEN || 'replace-with-a-shared-demo-token'
-  const runtime = useRunSocket({ runId, apiUrl, token })
+  const runtime = useRunSocket({
+    runId: runId ?? WAITING_RUN_ID,
+    apiUrl,
+    token,
+    enabled: runId !== null,
+  })
 
-  const triggerSkeleton = async () => {
-    setTriggerState('loading')
-    setTriggerError(null)
-
+  const performRequest = async (path: string, body?: Record<string, unknown>) => {
+    setRequestState('loading')
+    setRequestError(null)
     try {
-      const response = await fetch(demoSkeletonUrl(apiUrl), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ runId }),
-      })
-      if (!response.ok) {
-        throw new Error(`El backend respondió ${response.status}.`)
-      }
-      setTriggerState('sent')
+      const projection = await requestProjection(apiUrl, path, body)
+      setRunId(projection.runId)
+      setRequestState('sent')
     } catch (error) {
-      setTriggerState('error')
-      setTriggerError(error instanceof Error ? error.message : 'No se pudo iniciar el skeleton.')
+      setRequestState('error')
+      setRequestError(error instanceof Error ? error.message : 'No se pudo avanzar la demo.')
     }
   }
+
+  const startNewRun = () => {
+    setRunId(null)
+    setRequestState('idle')
+    setRequestError(null)
+  }
+
+  const canAdvance =
+    runtime.connectionStatus === 'open' && runtime.projection?.status === 'running'
+  const runFinished = runtime.projection?.status === 'completed'
+  const runPaused = runtime.projection?.status === 'paused'
 
   return (
     <div className="app-shell flex flex-col">
@@ -86,37 +113,71 @@ export default function Demo() {
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col gap-6 border-b border-stroke pb-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="eyebrow">Phase 1 · walking skeleton</p>
+              <p className="eyebrow">Phase 2 · golden path determinista</p>
               <h1 className="mt-3 max-w-3xl text-4xl leading-tight sm:text-5xl">
-                Una operación logística entendible en menos de un minuto.
+                El estado del agente se convierte en una interfaz viva.
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-content-muted">
-                Esta pantalla la compone una UISpec recibida por WebSocket. La decisión vuelve al
-                backend como un ActionEvent tipado.
+                Inicia un run, avanza sus cinco pasos y resuelve la decisión humana sin salir del
+                WebSocket.
               </p>
             </div>
 
-            <button
-              type="button"
-              className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={runtime.connectionStatus !== 'open' || triggerState === 'loading'}
-              onClick={() => void triggerSkeleton()}
-            >
-              {triggerState === 'loading' ? 'Solicitando…' : 'Emitir UISpec de prueba'}
-            </button>
+            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+              {!runId ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={requestState === 'loading'}
+                    onClick={() => void performRequest('/demo/skeleton')}
+                  >
+                    Skeleton H3
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={requestState === 'loading'}
+                    onClick={() => void performRequest('/runs')}
+                  >
+                    {requestState === 'loading' ? 'Iniciando…' : 'Iniciar golden path'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="btn-secondary" onClick={startNewRun}>
+                    Nuevo run
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canAdvance || requestState === 'loading'}
+                    onClick={() => void performRequest('/demo/advance', { runId })}
+                  >
+                    {requestState === 'loading'
+                      ? 'Avanzando…'
+                      : runFinished
+                        ? 'Run completado'
+                        : runPaused
+                          ? 'Esperando decisión'
+                          : 'Avanzar demo'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-content-muted">
-            <span className="font-mono">{runId}</span>
-            {triggerState === 'sent' ? <span>Solicitud enviada al backend.</span> : null}
+            <span className="font-mono">{runId ?? 'Crea un run para comenzar'}</span>
+            {requestState === 'sent' ? <span>Transición confirmada por HTTP.</span> : null}
           </div>
 
-          {runtime.error || triggerError ? (
+          {runtime.error || requestError ? (
             <div
               className="mt-6 rounded-control border border-emphasis-critical-border bg-emphasis-critical-bg p-4 text-sm text-emphasis-critical-fg"
               role="alert"
             >
-              {triggerError || runtime.error}
+              {requestError || runtime.error}
             </div>
           ) : null}
 
@@ -133,8 +194,8 @@ export default function Demo() {
                   <p className="eyebrow">Esperando UISpec</p>
                   <h2 className="mt-3 text-2xl">El renderer está listo.</h2>
                   <p className="mt-3 text-content-muted">
-                    Conecta el backend de Phase 1 y emite el skeleton. No hay una pantalla fija
-                    escondida detrás de este estado vacío.
+                    Usa el golden path para recorrer los cinco pasos o abre el skeleton H3 para ir
+                    directamente a una decisión humana.
                   </p>
                 </div>
               </div>

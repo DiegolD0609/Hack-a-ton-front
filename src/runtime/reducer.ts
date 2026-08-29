@@ -134,7 +134,14 @@ function applyServerEnvelope(state: RunRuntimeState, envelope: ServerEnvelope): 
     case 'ERROR':
       return { ...base, error: envelope.payload.message }
 
-    default:
+    case 'RUN_STARTED':
+    case 'STEP_STARTED':
+    case 'STEP_COMPLETED':
+    case 'STATE_UPDATED':
+    case 'DECISION_REQUIRED':
+    case 'RUN_PAUSED':
+    case 'RUN_RESUMED':
+    case 'RUN_COMPLETED':
       return { ...base, projection: envelope.payload.projection }
   }
 }

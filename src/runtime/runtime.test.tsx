@@ -4,12 +4,15 @@ import { describe, expect, it, vi } from 'vitest'
 import Renderer from '@/runtime/Renderer'
 import type {
   ActionSubmittedEnvelope,
+  ProjectionEnvelope,
+  ProjectionMessageType,
   RunEvent,
   RunId,
   RunProjection,
   UIUpdatedEnvelope,
   UISpec,
 } from '@/runtime/contracts'
+import { createInitialRunState, runRuntimeReducer } from '@/runtime/reducer'
 import useRunSocket, { type RuntimeSocket } from '@/runtime/useRunSocket'
 import { validateUISpec } from '@/runtime/validation'
 
@@ -207,6 +210,63 @@ describe('runtime renderer', () => {
     })
   })
 
+  it('renders the Phase 2 alert, timeline, and key-value primitives', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') {
+      throw new Error('fixture must contain a section')
+    }
+    section.children.unshift(
+      {
+        id: 'ui_runtime_alert',
+        type: 'alert',
+        props: {
+          title: 'Atención requerida',
+          message: 'El estado contiene un hallazgo.',
+          emphasis: 'warning',
+        },
+      },
+      {
+        id: 'ui_runtime_timeline',
+        type: 'timeline',
+        props: {
+          title: 'Actividad',
+          items: [
+            {
+              id: 'step_review_route',
+              title: 'Revisar ruta',
+              status: 'attention',
+              detail: 'Decisión pendiente',
+              timestamp: TIMESTAMP,
+            },
+          ],
+        },
+      },
+      {
+        id: 'ui_runtime_values',
+        type: 'keyValue',
+        props: {
+          title: 'Datos actuales',
+          columns: 2,
+          items: [
+            {
+              key: 'delay_days',
+              label: 'Días de retraso',
+              value: 9,
+              emphasis: 'warning',
+            },
+          ],
+        },
+      },
+    )
+
+    render(<Renderer uiSpec={uiSpec} />)
+
+    expect(screen.getByText('Atención requerida')).toBeInTheDocument()
+    expect(screen.getByText('Decisión pendiente')).toBeInTheDocument()
+    expect(screen.getByText('Días de retraso')).toBeInTheDocument()
+  })
+
   it('isolates unknown and broken nodes without losing valid siblings', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -247,6 +307,52 @@ describe('runtime renderer', () => {
     if (!result.ok) {
       expect(result.errors.join(' ')).toMatch(/duplicate node id/i)
     }
+  })
+})
+
+describe('run reducer', () => {
+  it('handles every projection-bearing P0 server message', () => {
+    const messageTypes: ProjectionMessageType[] = [
+      'RUN_STARTED',
+      'STEP_STARTED',
+      'STEP_COMPLETED',
+      'STATE_UPDATED',
+      'DECISION_REQUIRED',
+      'RUN_PAUSED',
+      'RUN_RESUMED',
+      'RUN_COMPLETED',
+    ]
+    let state = createInitialRunState(RUN_ID)
+
+    messageTypes.forEach((type, index) => {
+      const fixture = uiUpdatedEnvelope()
+      const sequence = index + 1
+      const event = {
+        ...fixture.payload.event,
+        eventId: `evt_projection_${sequence}` as const,
+        sequence,
+        stateVersion: sequence,
+        type,
+      }
+      const projection = {
+        ...fixture.payload.projection,
+        stateVersion: sequence,
+        lastSequence: sequence,
+        recentEvents: [event],
+      }
+      const envelope: ProjectionEnvelope = {
+        schemaVersion: '1',
+        type,
+        runId: RUN_ID,
+        sequence,
+        timestamp: TIMESTAMP,
+        payload: { event, projection },
+      }
+
+      state = runRuntimeReducer(state, { type: 'SERVER_MESSAGE', envelope })
+      expect(state.projection?.stateVersion).toBe(sequence)
+      expect(state.lastSequence).toBe(sequence)
+    })
   })
 })
 

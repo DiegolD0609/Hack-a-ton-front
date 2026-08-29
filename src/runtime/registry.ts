@@ -1,18 +1,24 @@
 import { createElement, type ReactNode } from 'react'
 import {
+  Alert,
   DecisionPanel,
   GenericStepCard,
+  KeyValue,
   Metric,
   Page,
   Section,
+  Timeline,
   type DecisionActionRequest,
 } from '@/components/ui-kit'
 import type {
+  AlertProps,
   DecisionPanelProps,
+  KeyValueProps,
   MetricProps,
   PageProps,
   SectionProps,
   StepProps,
+  TimelineProps,
 } from '@/runtime/contracts'
 import type { DecisionFeedback } from '@/runtime/reducer'
 import type { RegisteredComponentType } from '@/runtime/validation'
@@ -43,6 +49,18 @@ export const componentRegistry: Readonly<Record<RegisteredComponentType, Registr
   metric: {
     acceptsChildren: false,
     render: ({ props }) => createElement(Metric, props as MetricProps),
+  },
+  alert: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(Alert, props as AlertProps),
+  },
+  timeline: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(Timeline, props as TimelineProps),
+  },
+  keyValue: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(KeyValue, props as KeyValueProps),
   },
   decisionPanel: {
     acceptsChildren: false,

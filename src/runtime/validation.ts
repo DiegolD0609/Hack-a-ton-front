@@ -8,6 +8,9 @@ export type RegisteredComponentType =
   | 'page'
   | 'section'
   | 'metric'
+  | 'alert'
+  | 'timeline'
+  | 'keyValue'
   | 'decisionPanel'
   | 'step'
 
@@ -29,6 +32,9 @@ const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   page: 'PageProps',
   section: 'SectionProps',
   metric: 'MetricProps',
+  alert: 'AlertProps',
+  timeline: 'TimelineProps',
+  keyValue: 'KeyValueProps',
   decisionPanel: 'DecisionPanelProps',
   step: 'StepProps',
 }

@@ -33,7 +33,7 @@ describe('application routes', () => {
 
     await user.click(screen.getByRole('link', { name: 'Explorar la demo' }))
 
-    expect(screen.getByRole('heading', { name: /operación logística entendible/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /interfaz viva/i })).toBeInTheDocument()
     expect(screen.getByText('El renderer está listo.')).toBeInTheDocument()
   })
 

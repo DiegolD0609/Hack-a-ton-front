@@ -32,9 +32,11 @@ VITE_API_URL=http://127.0.0.1:8000
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 ```
 
-En desarrollo local, `VITE_API_URL` apunta directamente a FastAPI. El build de
-Docker usa `http://localhost:8000/api`, que Nginx proxifica al backend configurado
-en `BACKEND_URL`.
+En desarrollo local, `VITE_API_URL` puede apuntar directamente a FastAPI. Para
+usar el proxy HTTP/WS de Vite, define `VITE_API_URL=/api` y
+`BACKEND_URL=http://127.0.0.1:8000`. El build de Docker usa
+`http://localhost:8000/api`, que Nginx proxifica al backend configurado en
+`BACKEND_URL`.
 
 `VITE_DEMO_TOKEN` debe coincidir con `DEMO_TOKEN` del backend para el handshake
 WebSocket. Es un control exclusivo de la demo y queda visible en el bundle Vite;
@@ -55,36 +57,40 @@ modelos Pydantic congelados y se guardan en `src/runtime/generated/`. AJV los
 ejecuta antes de que un mensaje WebSocket entre al reducer. No deben editarse a
 mano ni regenerarse desde los tipos TypeScript.
 
-## Phase 1 · walking skeleton
+## Fases 1–2 · skeleton y golden path
 
-La ruta `/demo` usa `run_demo_skeleton` por defecto y abre:
+La ruta `/demo` permite crear un skeleton G1 o iniciar el golden path real. Una
+vez que el backend devuelve el `runId`, abre:
 
 ```text
 GET ws(s)://<VITE_API_URL>/ws/runs/{runId}?token=<VITE_DEMO_TOKEN>
 ```
 
-Una vez conectado, “Emitir UISpec de prueba” solicita al backend:
+“Skeleton H3” solicita al backend:
 
 ```http
 POST /demo/skeleton
-Content-Type: application/json
-
-{"runId":"run_demo_skeleton"}
 ```
 
-El frontend espera `UI_UPDATED`, guarda `projection` + `uiSpec` en un reducer y
-renderiza recursivamente `page`, `section`, `metric`, `decisionPanel` y `step`.
+“Iniciar golden path” usa `POST /runs`; “Avanzar demo” llama
+`POST /demo/advance` hasta recorrer los cinco pasos del fixture. El frontend
+espera `UI_UPDATED`, guarda `projection` + `uiSpec` en un reducer y renderiza
+recursivamente `page`, `section`, `metric`, `decisionPanel`, `step`, `alert`,
+`timeline` y `keyValue` con tokens normal/warning/critical. `compare` se integra
+en Fase 3, como establece el roadmap.
+
 Un tipo no registrado o props inválidas quedan aislados como
-`GenericStepCard`; nunca derriban la página completa.
+`GenericStepCard`; nunca derriban la página completa. El reducer reconoce los
+doce mensajes P0 del contrato congelado.
 
 Al pulsar una acción permitida, el cliente envía `ACTION_SUBMITTED` por el mismo
 socket. Su payload es un `ActionEvent` con `idempotencyKey` de cliente y sin
 `eventId`; el panel muestra `submitting`, `accepted` o `rejected` según la
 respuesta del backend.
 
-El hub WebSocket y `POST /demo/skeleton` pertenecen al backend (Lane D). Hasta
-que estén integrados, `src/runtime/runtime.test.tsx` prueba el loop frontend con
-un socket falso que respeta el contrato congelado.
+El backend recompone y emite una nueva `UI_UPDATED` tras aceptar la acción. Los
+tests del runtime mantienen además un socket falso para validar el loop sin
+depender de infraestructura local.
 
 ## Comandos
 
