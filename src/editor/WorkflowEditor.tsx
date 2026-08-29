@@ -117,7 +117,12 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
     setError(null)
     try {
       const resolvedBaseline = await resolveBaseline()
-      const response = await createWorkflowVersion(apiUrl, resolvedBaseline.workflowId, [step])
+      const response = await createWorkflowVersion(
+        apiUrl,
+        resolvedBaseline.workflowId,
+        resolvedBaseline.version,
+        [step],
+      )
       setCreatedVersion(response)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No se pudo crear la nueva versión.')
@@ -263,7 +268,8 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
                   </div>
                   <p className="mt-2 text-xs leading-5 text-content-muted">
                     Usa rutas punteadas del estado. Si una ruta no existe, el executor la reporta
-                    como faltante en vez de inventar un valor.
+                    como faltante en vez de inventar un valor. El paso se anexa al final del flow
+                    base, por lo que puede consumir resultados de pasos anteriores.
                   </p>
                   <div className="mt-3 flex min-h-10 flex-wrap gap-2" aria-label="Inputs seleccionados">
                     {form.inputs.length ? (
@@ -330,7 +336,7 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
                       ? 'Creando versión…'
                       : status === 'loading-base'
                         ? 'Cargando workflow…'
-                        : `Crear v${baseline ? baseline.version + 1 : 'n+1'}`}
+                        : 'Crear v(n+1)'}
                   </button>
                 )}
                 <span className="text-xs text-content-muted">
@@ -366,9 +372,7 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
                   <span className="font-semibold text-emphasis-normal-fg">
                     {createdVersion
                       ? `v${createdVersion.version}`
-                      : baseline
-                        ? `v${baseline.version + 1}`
-                        : 'v(n+1)'}
+                      : 'v(n+1)'}
                   </span>
                   <span className="font-semibold text-content-muted">Cambio</span>
                   <span>
@@ -377,12 +381,19 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
                   </span>
                   <span className="font-semibold text-content-muted">Inputs</span>
                   <span>{step.inputs.length}</span>
+                  <span className="font-semibold text-content-muted">Pasos</span>
+                  <span>
+                    {createdVersion
+                      ? `${createdVersion.steps.length - 1} base + 1 nuevo = ${createdVersion.steps.length}`
+                      : 'flow base + 1 nuevo'}
+                  </span>
                   <span className="font-semibold text-content-muted">Review</span>
                   <span>{step.requiresHumanReview ? 'Humana obligatoria' : 'Automática'}</span>
                 </div>
                 <p className="mt-5 border-t border-stroke pt-4 text-xs leading-5 text-content-muted">
-                  La API actual crea una definición inmutable con el paso generado. El run nuevo
-                  ejecuta exactamente esa versión; no modifica runs anteriores.
+                  La API copia la versión base y anexa el paso generado en una definición
+                  inmutable. El run nuevo ejecuta exactamente esa versión; no modifica runs
+                  anteriores.
                 </p>
               </section>
             </div>

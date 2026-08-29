@@ -94,6 +94,7 @@ export default function Demo() {
     runtime.transport !== 'offline' && runtime.projection?.status === 'running'
   const runFinished = runtime.projection?.status === 'completed'
   const runPaused = runtime.projection?.status === 'paused'
+  const isTrialByFire = (runtime.projection?.workflowVersion ?? 1) > 1
   const editorUrl = runId
     ? `${appConfig.routes.editor}?runId=${encodeURIComponent(runId)}`
     : appConfig.routes.editor
@@ -129,13 +130,19 @@ export default function Demo() {
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col gap-6 border-b border-stroke pb-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="eyebrow">Phase 3 · loop humano inspeccionable</p>
+              <p className="eyebrow">
+                {isTrialByFire
+                  ? 'Phase 4 · trial-by-fire'
+                  : 'Phase 3 · loop humano inspeccionable'}
+              </p>
               <h1 className="mt-3 max-w-3xl text-4xl leading-tight sm:text-5xl">
                 El estado del agente se convierte en una interfaz viva.
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-content-muted">
-                Inicia un run, avanza sus cinco pasos y resuelve la decisión humana sin salir del
-                WebSocket. El inspector muestra cada upgrade determinista o LLM.
+                {isTrialByFire
+                  ? 'Recorre el flow base, ejecuta el paso inventado y resuelve su revisión humana sin reiniciar.'
+                  : 'Inicia un run, avanza sus cinco pasos y resuelve la decisión humana sin salir del WebSocket.'}{' '}
+                El inspector muestra cada upgrade determinista o LLM.
               </p>
             </div>
 
@@ -165,6 +172,13 @@ export default function Demo() {
                     Nuevo run
                   </button>
                   <UISpecInspector uiSpec={runtime.uiSpec} />
+                  <a
+                    className="btn-secondary"
+                    href={apiEndpoint(apiUrl, `/runs/${encodeURIComponent(runId)}/events`)}
+                    download={`${runId}-events.json`}
+                  >
+                    Exportar eventos
+                  </a>
                   <button
                     type="button"
                     className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
