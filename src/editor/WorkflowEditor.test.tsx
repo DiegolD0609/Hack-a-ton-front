@@ -72,6 +72,14 @@ describe('WorkflowEditor', () => {
             version: 2,
             steps: [
               {
+                id: 'base_step',
+                type: 'generic.base',
+                title: 'Base step',
+                objective: 'Produce prior state.',
+                inputs: [],
+                requiresHumanReview: false,
+              },
+              {
                 id: 'step_verify_inputs',
                 type: 'generic.runtime',
                 title: 'Verify inputs',
@@ -91,9 +99,10 @@ describe('WorkflowEditor', () => {
     await user.type(screen.getByLabelText('Objective'), 'Inspect declared state paths.')
     await user.type(screen.getByLabelText('Input picker'), 'source.data.score')
     await user.click(screen.getByRole('button', { name: 'Agregar input' }))
-    await user.click(screen.getByRole('button', { name: 'Crear vn+1' }))
+    await user.click(screen.getByRole('button', { name: 'Crear v(n+1)' }))
 
     const runButton = await screen.findByRole('button', { name: 'Run with v2' })
+    expect(screen.getByText('1 base + 1 nuevo = 2')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
     const versionCall = fetchMock.mock.calls[1]
@@ -101,6 +110,7 @@ describe('WorkflowEditor', () => {
       `http://127.0.0.1:8000/workflows/${workflowId}/versions`,
     )
     expect(JSON.parse(String(versionCall[1]?.body))).toEqual({
+      baseVersion: 1,
       steps: [
         {
           id: 'step_verify_inputs',

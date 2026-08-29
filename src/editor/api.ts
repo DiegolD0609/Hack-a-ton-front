@@ -62,6 +62,7 @@ export async function createRun(
 export async function createWorkflowVersion(
   apiUrl: string,
   workflowId: string,
+  baseVersion: number,
   steps: WorkflowStepDefinition[],
 ): Promise<WorkflowVersionResponse> {
   const version = await requestJson<WorkflowVersionResponse>(
@@ -70,7 +71,7 @@ export async function createWorkflowVersion(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ steps }),
+      body: JSON.stringify({ baseVersion, steps }),
     },
   )
 

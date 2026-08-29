@@ -74,9 +74,13 @@ Al reconectar obtiene `GET /runs/{id}/snapshot`; con
 
 `/editor` genera un `StepDefinition` genérico desde `title`, `objective`, rutas
 de `inputs` y `requiresHumanReview`. La vista JSON y el diff se actualizan en
-vivo. Al confirmar, el frontend crea `v(n+1)` con
+vivo. Al confirmar, el frontend crea `v(n+1)` con el flow base más el paso
+generado mediante
 `POST /workflows/{id}/versions`; “Run with v(n+1)” inicia un run asociado a su
 `workflowVersionId` y lo abre en `/demo`.
+
+La demo identifica versiones posteriores a v1 como trial-by-fire y permite
+exportar su event log JSON directamente desde el header del runtime.
 
 Si se entra desde un run activo, `/editor?runId=...` reutiliza su proyección
 como baseline. Sin `runId`, la primera confirmación crea un run base para

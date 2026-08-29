@@ -9,7 +9,7 @@ export interface WorkflowStepForm {
 
 export interface WorkflowStepDefinition extends WorkflowStepForm {
   id: string
-  type: 'generic.runtime'
+  type: string
 }
 
 export interface WorkflowVersionResponse {
