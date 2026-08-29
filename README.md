@@ -12,6 +12,7 @@ El repositorio contiene únicamente la superficie definida por el roadmap:
 - registry congelado de nueve componentes;
 - reducer, WebSocket, reconexión por snapshot y fallback de polling;
 - inspector de `UISpec` con `generatedBy`, `reason` y `stateVersion`;
+- editor de workflow que genera pasos, muestra el diff y ejecuta `v(n+1)`;
 - design tokens normal, warning y critical;
 - landing de presentación con un único destino funcional: la demo;
 - shell de demo para el walking skeleton y el golden path.
@@ -30,8 +31,9 @@ cp .env.example .env
 npm run dev
 ```
 
-Abre `http://localhost:5173/landing` para la presentación o
-`http://localhost:5173/demo` para entrar directamente al runtime.
+Abre `http://localhost:5173/landing` para la presentación,
+`http://localhost:5173/demo` para entrar al runtime o
+`http://localhost:5173/editor` para crear una versión ejecutable.
 
 ## Variables de entorno
 
@@ -68,17 +70,30 @@ GET ws(s)://<VITE_API_URL>/ws/runs/{runId}?token=<VITE_DEMO_TOKEN>
 Al reconectar obtiene `GET /runs/{id}/snapshot`; con
 `VITE_RUNTIME_POLLING=true` usa polling mientras recupera el WebSocket.
 
+## Editor de workflow
+
+`/editor` genera un `StepDefinition` genérico desde `title`, `objective`, rutas
+de `inputs` y `requiresHumanReview`. La vista JSON y el diff se actualizan en
+vivo. Al confirmar, el frontend crea `v(n+1)` con
+`POST /workflows/{id}/versions`; “Run with v(n+1)” inicia un run asociado a su
+`workflowVersionId` y lo abre en `/demo`.
+
+Si se entra desde un run activo, `/editor?runId=...` reutiliza su proyección
+como baseline. Sin `runId`, la primera confirmación crea un run base para
+identificar el workflow vigente.
+
 ## Estructura
 
 ```text
 src/
 ├── components/         presentación y nueve primitivas del registry
 ├── config/             identidad y rutas públicas mínimas
+├── editor/             formulario, DTO HTTP, diff y creación de versiones
 ├── inspector/          inspector vivo de UISpec
 ├── pages/              landing y shell del walking skeleton/golden path
 ├── runtime/            contratos, schemas, renderer, reducer y socket
 ├── test/               configuración de Vitest
-├── App.tsx             selección mínima entre landing y demo
+├── App.tsx             selección mínima entre landing, demo y editor
 └── index.css           tokens y estilos compartidos
 ```
 

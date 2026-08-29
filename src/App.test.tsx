@@ -21,4 +21,12 @@ describe('application surfaces', () => {
     expect(screen.getByText('El renderer está listo.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Iniciar golden path' })).toBeEnabled()
   })
+
+  it('renders the Phase 4 workflow editor at /editor', () => {
+    window.history.pushState({}, '', '/editor')
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Inventa un paso en runtime.' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toBeEnabled()
+    expect(screen.getByLabelText('Vista previa JSON del paso')).toBeInTheDocument()
+  })
 })

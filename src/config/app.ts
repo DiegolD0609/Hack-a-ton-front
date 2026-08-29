@@ -8,5 +8,6 @@ export const appConfig = {
   routes: {
     landing: '/landing',
     demo: '/demo',
+    editor: '/editor',
   },
 } as const

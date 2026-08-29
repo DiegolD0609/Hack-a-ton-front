@@ -65,6 +65,7 @@ export default function Landing() {
                 inert={!isMenuOpen}
               >
                 <MenuLink to={appConfig.routes.demo} label="Abrir demo" onClick={() => setIsMenuOpen(false)} />
+                <MenuLink to={appConfig.routes.editor} label="Crear workflow" onClick={() => setIsMenuOpen(false)} />
               </div>
             </div>
           </nav>

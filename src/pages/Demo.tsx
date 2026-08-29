@@ -94,6 +94,9 @@ export default function Demo() {
     runtime.transport !== 'offline' && runtime.projection?.status === 'running'
   const runFinished = runtime.projection?.status === 'completed'
   const runPaused = runtime.projection?.status === 'paused'
+  const editorUrl = runId
+    ? `${appConfig.routes.editor}?runId=${encodeURIComponent(runId)}`
+    : appConfig.routes.editor
 
   return (
     <div className="app-shell flex flex-col">
@@ -102,18 +105,23 @@ export default function Demo() {
           <a href={appConfig.routes.landing} className="font-display text-xl">
             {appConfig.name}
           </a>
-          <span
-            className={`rounded-full px-3 py-2 text-xs font-semibold ${
-              runtime.transport === 'polling'
-                ? 'bg-emphasis-warning-bg text-emphasis-warning-fg'
-                : connectionClasses[runtime.connectionStatus]
-            }`}
-            role="status"
-          >
-            {runtime.transport === 'polling'
-              ? 'Polling activo'
-              : connectionLabels[runtime.connectionStatus]}
-          </span>
+          <div className="flex items-center gap-2">
+            <a href={editorUrl} className="btn-quiet">
+              Editor
+            </a>
+            <span
+              className={`rounded-full px-3 py-2 text-xs font-semibold ${
+                runtime.transport === 'polling'
+                  ? 'bg-emphasis-warning-bg text-emphasis-warning-fg'
+                  : connectionClasses[runtime.connectionStatus]
+              }`}
+              role="status"
+            >
+              {runtime.transport === 'polling'
+                ? 'Polling activo'
+                : connectionLabels[runtime.connectionStatus]}
+            </span>
+          </div>
         </div>
       </header>
 
