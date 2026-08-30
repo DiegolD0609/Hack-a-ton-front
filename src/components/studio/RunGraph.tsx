@@ -1,18 +1,10 @@
 import type { RunProjection } from '@/runtime/contracts'
 import StudioIcon from '@/components/studio/StudioIcon'
 
-const knownTitles: Record<string, string> = {
-  booking_received: 'Interpretar contexto',
-  vessel_departure: 'Construir baseline',
-  transshipment_anomaly: 'Detectar señal',
-  route_resolution: 'Aplicar decisión',
-  delivery_eta: 'Recomponer salida',
-}
-
 interface GraphStep {
   id: string
   title: string
-  status: 'pending' | 'active' | 'done' | 'attention'
+  status: 'active' | 'done' | 'attention'
 }
 
 interface RunGraphProps {
@@ -62,53 +54,62 @@ export default function RunGraph({
       </header>
 
       <div className="studio-flow-scroll">
-        <ol className="studio-flow-track">
-          {steps.map((step, index) => (
-            <li key={step.id} className={`studio-flow-step is-${step.status}`}>
-              <div className="flow-step-node">
-                {step.status === 'done' ? (
-                  <StudioIcon name="check" size={15} />
-                ) : step.status === 'active' ? (
-                  <StudioIcon name="bolt" size={14} />
-                ) : step.status === 'attention' ? (
-                  <span>!</span>
-                ) : (
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                )}
-              </div>
-              <div className="flow-step-copy">
-                <span>{step.status === 'active' ? 'Ejecutando' : step.status === 'attention' ? 'Revisión' : step.status === 'done' ? 'Listo' : 'Siguiente'}</span>
-                <p>{step.title}</p>
-              </div>
-              {index < steps.length - 1 ? <span className="flow-connector" /> : null}
-            </li>
-          ))}
-        </ol>
+        {steps.length ? (
+          <ol className="studio-flow-track is-api-only">
+            {steps.map((step, index) => (
+              <li key={step.id} className={`studio-flow-step is-${step.status}`}>
+                <div className="flow-step-node">
+                  {step.status === 'done' ? (
+                    <StudioIcon name="check" size={15} />
+                  ) : step.status === 'active' ? (
+                    <StudioIcon name="bolt" size={14} />
+                  ) : (
+                    <span>!</span>
+                  )}
+                </div>
+                <div className="flow-step-copy">
+                  <span>{step.status === 'active' ? 'Ejecutando' : step.status === 'attention' ? 'Revisión' : 'Listo'}</span>
+                  <p>{step.title}</p>
+                </div>
+                {index < steps.length - 1 ? <span className="flow-connector" /> : null}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="studio-flow-empty">Sin workflow local. El API definirá la ejecución.</div>
+        )}
       </div>
     </section>
   )
 }
 
 function buildSteps(projection: RunProjection | null): GraphStep[] {
-  const ids = ['booking_received', 'vessel_departure', 'transshipment_anomaly', 'route_resolution', 'delivery_eta', 'studio_learning']
+  if (!projection) return []
+
+  const ids: string[] = []
+  for (const event of projection.recentEvents) {
+    if (!event.stepId) continue
+    const id = event.stepId.replace('step_', '')
+    if (!ids.includes(id)) ids.push(id)
+  }
+  const active = projection.currentStep?.id.replace('step_', '')
+  if (active && !ids.includes(active)) ids.push(active)
+
   const completed = new Set(
-    projection?.recentEvents
+    projection.recentEvents
       .filter((event) => event.type === 'STEP_COMPLETED' && event.stepId)
-      .map((event) => event.stepId!.replace('step_', '')) ?? [],
+      .map((event) => event.stepId!.replace('step_', '')),
   )
-  const active = projection?.currentStep?.id.replace('step_', '')
-  const isPaused = projection?.status === 'paused'
+  const isPaused = projection.status === 'paused'
 
   return ids.map((id) => {
-    const isStudio = id === 'studio_learning'
-    const actualActive = isStudio ? active?.startsWith('studio-') : active === id
-    const actualCompleted = isStudio
-      ? [...completed].some((stepId) => stepId.startsWith('studio-'))
-      : completed.has(id)
+    const actualActive = active === id
     return {
       id,
-      title: isStudio ? 'Aprender del feedback' : knownTitles[id],
-      status: actualCompleted ? 'done' : actualActive ? (isPaused ? 'attention' : 'active') : 'pending',
+      title: actualActive && projection.currentStep
+        ? projection.currentStep.title
+        : id.replaceAll('_', ' ').replaceAll('-', ' '),
+      status: completed.has(id) ? 'done' : actualActive && isPaused ? 'attention' : 'active',
     }
   })
 }
