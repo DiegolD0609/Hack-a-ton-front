@@ -1,8 +1,40 @@
-import type { CSSProperties, ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { RouteMap } from '@/components/ui-kit'
 import type { Emphasis, MapProps, MapSegment, MapWaypoint } from '@/runtime/contracts'
 
 type LooseObject = Record<string, unknown>
+
+/**
+ * Client-side-only wiring: a searchBar/dropdown can name a table/tags node's
+ * id as its `filterTarget`. No backend round-trip — the control's live value
+ * is kept here, keyed by the control's own node id, and the target node
+ * reads whichever entries point at it to compute what it shows.
+ */
+interface FilterEntry {
+  targetId: string
+  column: string | null
+  value: string
+}
+
+type FilterState = Record<string, FilterEntry>
+
+const FilterContext = createContext<{
+  filters: FilterState
+  setFilter: (sourceId: string, entry: FilterEntry | null) => void
+}>({ filters: {}, setFilter: () => {} })
+
+function useTargetFilters(nodeId: string): FilterEntry[] {
+  const { filters } = useContext(FilterContext)
+  return Object.values(filters).filter((entry) => entry.targetId === nodeId)
+}
 
 function objectValue(value: unknown): LooseObject | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -232,40 +264,56 @@ function StudioStep({ props }: { props: LooseObject }) {
   )
 }
 
-function StudioSearchBar({ props }: { props: LooseObject }) {
+function StudioSearchBar({ id, props }: { id: string; props: LooseObject }) {
   const label = stringValue(props.label)
+  const filterTarget = stringValue(props.filterTarget)
+  const { setFilter } = useContext(FilterContext)
+  const [value, setValue] = useState(stringValue(props.value) ?? '')
+
+  useEffect(() => {
+    if (!filterTarget) return undefined
+    setFilter(id, value ? { targetId: filterTarget, column: null, value } : null)
+    return () => setFilter(id, null)
+  }, [id, filterTarget, value, setFilter])
+
   return (
     <label className="generated-search">
       {label ? <span>{label}</span> : null}
       <input
         type="search"
-        readOnly
         placeholder={stringValue(props.placeholder) ?? 'Buscar…'}
-        defaultValue={stringValue(props.value) ?? ''}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
       />
     </label>
   )
 }
 
-function StudioDropdown({ props }: { props: LooseObject }) {
+function StudioDropdown({ id, props }: { id: string; props: LooseObject }) {
   const label = stringValue(props.label)
   const options = Array.isArray(props.options) ? props.options : []
-  const selectedValue = stringValue(props.selectedValue)
+  const filterTarget = stringValue(props.filterTarget)
+  const filterColumn = stringValue(props.filterColumn)
+  const { setFilter } = useContext(FilterContext)
+  const [value, setValue] = useState(stringValue(props.selectedValue) ?? '')
+
+  useEffect(() => {
+    if (!filterTarget) return undefined
+    setFilter(id, value ? { targetId: filterTarget, column: filterColumn, value } : null)
+    return () => setFilter(id, null)
+  }, [id, filterTarget, filterColumn, value, setFilter])
+
   return (
     <label className="generated-dropdown">
       {label ? <span>{label}</span> : null}
-      <select disabled defaultValue={selectedValue ?? ''}>
-        {stringValue(props.placeholder) ? (
-          <option value="" disabled>
-            {stringValue(props.placeholder)}
-          </option>
-        ) : null}
+      <select value={value} onChange={(event) => setValue(event.target.value)}>
+        <option value="">{stringValue(props.placeholder) ?? 'Todos'}</option>
         {options.map((option, index) => {
           const entry = objectValue(option) ?? {}
-          const value = stringValue(entry.value) ?? String(index)
+          const optionValue = stringValue(entry.value) ?? String(index)
           return (
-            <option key={value} value={value}>
-              {stringValue(entry.label) ?? value}
+            <option key={optionValue} value={optionValue}>
+              {stringValue(entry.label) ?? optionValue}
             </option>
           )
         })}
@@ -380,9 +428,28 @@ function ChartPie({ points }: { points: ChartDatum[] }) {
   )
 }
 
-function StudioTable({ props }: { props: LooseObject }) {
+function rowMatchesFilter(cells: unknown[], columns: string[], filter: FilterEntry): boolean {
+  const needle = filter.value.trim().toLowerCase()
+  if (!needle) return true
+  if (filter.column) {
+    const columnIndex = columns.indexOf(filter.column)
+    if (columnIndex === -1) return true
+    return displayValue(cells[columnIndex]).toLowerCase() === needle
+  }
+  return cells.some((cell) => displayValue(cell).toLowerCase().includes(needle))
+}
+
+function StudioTable({ id, props }: { id: string; props: LooseObject }) {
   const columns = Array.isArray(props.columns) ? props.columns.map((column) => stringValue(column) ?? '') : []
   const rows = Array.isArray(props.rows) ? props.rows : []
+  const activeFilters = useTargetFilters(id)
+  const visibleRows = activeFilters.length
+    ? rows.filter((row) => {
+        const cells = Array.isArray(row) ? row : []
+        return activeFilters.every((filter) => rowMatchesFilter(cells, columns, filter))
+      })
+    : rows
+
   return (
     <section className="generated-card generated-table">
       {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
@@ -395,7 +462,7 @@ function StudioTable({ props }: { props: LooseObject }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, rowIndex) => {
+          {visibleRows.map((row, rowIndex) => {
             const cells = Array.isArray(row) ? row : []
             return (
               <tr key={rowIndex}>
@@ -407,6 +474,9 @@ function StudioTable({ props }: { props: LooseObject }) {
           })}
         </tbody>
       </table>
+      {activeFilters.length && !visibleRows.length ? (
+        <p className="generated-table-empty">Ningún resultado coincide con el filtro.</p>
+      ) : null}
     </section>
   )
 }
@@ -431,13 +501,21 @@ function StudioProgress({ props }: { props: LooseObject }) {
   )
 }
 
-function StudioTags({ props }: { props: LooseObject }) {
+function StudioTags({ id, props }: { id: string; props: LooseObject }) {
   const items = Array.isArray(props.items) ? props.items : []
+  const activeFilters = useTargetFilters(id)
+  const visibleItems = activeFilters.length
+    ? items.filter((item) => {
+        const label = stringValue(objectValue(item)?.label) ?? ''
+        return activeFilters.every((filter) => label.toLowerCase().includes(filter.value.trim().toLowerCase()))
+      })
+    : items
+
   return (
     <section className="generated-card generated-tags">
       {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
       <div className="generated-tags-list">
-        {items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const entry = objectValue(item) ?? {}
           const color = hexColor(entry.color)
           return (
@@ -451,6 +529,9 @@ function StudioTags({ props }: { props: LooseObject }) {
           )
         })}
       </div>
+      {activeFilters.length && !visibleItems.length ? (
+        <p className="generated-table-empty">Ningún resultado coincide con el filtro.</p>
+      ) : null}
     </section>
   )
 }
@@ -535,6 +616,7 @@ function StudioNode({ node }: { node: unknown }) {
   const record = objectValue(node)
   if (!record) return null
   const props = objectValue(record.props) ?? {}
+  const id = stringValue(record.id) ?? ''
 
   switch (stringValue(record.type)) {
     case 'page': return <StudioPage node={record} props={props} />
@@ -548,12 +630,12 @@ function StudioNode({ node }: { node: unknown }) {
     case 'compare': return <StudioCompare props={props} />
     case 'step': return <StudioStep props={props} />
     case 'map': return <StudioMap props={props} />
-    case 'searchBar': return <StudioSearchBar props={props} />
-    case 'dropdown': return <StudioDropdown props={props} />
+    case 'searchBar': return <StudioSearchBar id={id} props={props} />
+    case 'dropdown': return <StudioDropdown id={id} props={props} />
     case 'chart': return <StudioChart props={props} />
-    case 'table': return <StudioTable props={props} />
+    case 'table': return <StudioTable id={id} props={props} />
     case 'progress': return <StudioProgress props={props} />
-    case 'tags': return <StudioTags props={props} />
+    case 'tags': return <StudioTags id={id} props={props} />
     default: return <>{renderChildren(record)}</>
   }
 }
@@ -641,6 +723,32 @@ export function studioResponseMeta(response: unknown): {
   }
 }
 
+function FilterProvider({ children }: { children: ReactNode }) {
+  const [filters, setFilters] = useState<FilterState>({})
+
+  const setFilter = useCallback((sourceId: string, entry: FilterEntry | null) => {
+    setFilters((prev) => {
+      if (entry === null) {
+        if (!(sourceId in prev)) return prev
+        const next = { ...prev }
+        delete next[sourceId]
+        return next
+      }
+      const existing = prev[sourceId]
+      if (existing && existing.targetId === entry.targetId && existing.column === entry.column && existing.value === entry.value) {
+        return prev
+      }
+      return { ...prev, [sourceId]: entry }
+    })
+  }, [])
+
+  return <FilterContext.Provider value={{ filters, setFilter }}>{children}</FilterContext.Provider>
+}
+
 export default function StudioRenderer({ response }: { response: unknown }) {
-  return <StudioNode node={objectValue(response)?.layout} />
+  return (
+    <FilterProvider>
+      <StudioNode node={objectValue(response)?.layout} />
+    </FilterProvider>
+  )
 }

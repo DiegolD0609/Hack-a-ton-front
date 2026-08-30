@@ -1555,6 +1555,11 @@
   background: white;
   box-shadow: 0 25px 50px -30px rgb(23 23 20 / 0.55);
   transition: max-width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* The desktop/tablet/mobile switcher only caps this frame's width — the
+     real browser viewport stays desktop-sized. @media can't see that, so
+     the generated content below reacts to *this container's* width. */
+  container-type: inline-size;
+  container-name: studio-frame;
 }
 
 .studio-browser-bar {
@@ -1627,10 +1632,12 @@
 }
 
 .generated-page-header h1 {
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  /* cqw, not vw: this scales with the studio-frame preview width (which the
+     desktop/tablet/mobile switcher changes), not the real browser viewport. */
+  font-size: clamp(1.5rem, 7cqw, 3rem);
   font-weight: 850;
   letter-spacing: -0.055em;
-  line-height: 1;
+  line-height: 1.05;
 }
 
 .generated-page-header > p:not(.generated-eyebrow) {
@@ -1838,41 +1845,6 @@
   padding: 0.25rem 0.5rem;
 }
 
-.generated-route > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.generated-route article {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.1rem 0.55rem;
-  min-width: 150px;
-  border-radius: 0.7rem;
-  background: white;
-  padding: 0.7rem;
-}
-
-.generated-route article > span {
-  grid-row: 1 / 3;
-  display: grid;
-  width: 1.45rem;
-  height: 1.45rem;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--studio-ink);
-  color: var(--studio-acid);
-  font-size: 0.62rem;
-  font-weight: 850;
-}
-
-.generated-route small {
-  color: rgb(23 23 20 / 0.45);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.58rem;
-}
-
 .generated-search {
   display: grid;
   gap: 0.35rem;
@@ -1919,15 +1891,17 @@
   gap: 0.7rem;
   min-height: 140px;
   padding-top: 1rem;
+  overflow-x: auto;
 }
 
 .generated-chart-bar {
   display: grid;
-  flex: 1;
+  flex: 1 0 auto;
   grid-template-rows: 1fr auto auto;
   justify-items: center;
   gap: 0.25rem;
   height: 100%;
+  min-width: 2.5rem;
 }
 
 .generated-chart-bar-fill {
@@ -1991,6 +1965,44 @@
   border-radius: 999px;
 }
 
+/* Reacts to the studio-frame preview width (see .studio-browser-frame), so
+   the tablet/mobile switcher actually reflows the generated UI instead of
+   just clipping it. 480px covers the 390px "mobile" preview plus its
+   padding. */
+@container studio-frame (max-width: 480px) {
+  .generated-page {
+    gap: 1rem;
+  }
+
+  .generated-page-header {
+    gap: 0.3rem;
+  }
+
+  .generated-section {
+    padding: 0.75rem;
+  }
+
+  .generated-compare-head,
+  .generated-compare-row {
+    grid-template-columns: minmax(60px, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .generated-compare-row {
+    font-size: 0.68rem;
+  }
+
+  .generated-chart-pie {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .generated-key-values dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 .generated-table {
   overflow-x: auto;
 }
@@ -2014,6 +2026,12 @@
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.generated-table-empty {
+  margin-top: 0.6rem;
+  color: rgb(23 23 20 / 0.5);
+  font-size: 0.78rem;
 }
 
 .generated-progress-head {

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import StudioRenderer, { studioResponseMeta } from './StudioRenderer'
 
@@ -209,5 +210,110 @@ describe('contract-free Studio renderer', () => {
     )
 
     expect(screen.getByText('Mapa incompleto')).toBeInTheDocument()
+  })
+
+  it('lets a wired search bar live-filter a table across any column', async () => {
+    const user = userEvent.setup()
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Pedidos' },
+            children: [
+              {
+                id: 'ui_search',
+                type: 'searchBar',
+                props: { placeholder: 'Buscar…', filterTarget: 'ui_table' },
+              },
+              {
+                id: 'ui_table',
+                type: 'table',
+                props: {
+                  columns: ['ID', 'Cliente'],
+                  rows: [['1', 'Acme'], ['2', 'Globex']],
+                },
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('cell', { name: 'Acme' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Globex' })).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('Buscar…'), 'acme')
+
+    expect(screen.getByRole('cell', { name: 'Acme' })).toBeInTheDocument()
+    expect(screen.queryByRole('cell', { name: 'Globex' })).not.toBeInTheDocument()
+  })
+
+  it('lets a wired dropdown filter a table by a specific column', async () => {
+    const user = userEvent.setup()
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Pedidos' },
+            children: [
+              {
+                id: 'ui_dropdown',
+                type: 'dropdown',
+                props: {
+                  label: 'Estado',
+                  options: [{ label: 'OK', value: 'ok' }, { label: 'Pendiente', value: 'pendiente' }],
+                  filterTarget: 'ui_table',
+                  filterColumn: 'Estado',
+                },
+              },
+              {
+                id: 'ui_table',
+                type: 'table',
+                props: {
+                  columns: ['ID', 'Estado'],
+                  rows: [['1', 'ok'], ['2', 'pendiente']],
+                },
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    await user.selectOptions(screen.getByRole('combobox'), 'pendiente')
+
+    expect(screen.queryByRole('cell', { name: '1' })).not.toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '2' })).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when a filter matches nothing, without crashing', async () => {
+    const user = userEvent.setup()
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Pedidos' },
+            children: [
+              { id: 'ui_search', type: 'searchBar', props: { placeholder: 'Buscar…', filterTarget: 'ui_table' } },
+              { id: 'ui_table', type: 'table', props: { columns: ['ID'], rows: [['1']] } },
+            ],
+          },
+        }}
+      />,
+    )
+
+    await user.type(screen.getByPlaceholderText('Buscar…'), 'no-existe')
+
+    expect(screen.getByText('Ningún resultado coincide con el filtro.')).toBeInTheDocument()
   })
 })
