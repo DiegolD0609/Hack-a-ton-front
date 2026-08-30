@@ -255,6 +255,7 @@ export function studioResponseMeta(response: unknown): {
   conversationId: string | null
   generatedBy: string | null
   reason: string | null
+  suggestion: string | null
   layout: unknown
   rootBlocks: number
 } {
@@ -264,6 +265,7 @@ export function studioResponseMeta(response: unknown): {
     conversationId: stringValue(payload?.conversationId),
     generatedBy: stringValue(payload?.generatedBy),
     reason: stringValue(payload?.reason),
+    suggestion: stringValue(payload?.suggestion),
     layout: payload?.layout,
     rootBlocks: layout ? nodeChildren(layout).length : 0,
   }

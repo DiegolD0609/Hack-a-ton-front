@@ -1,8 +1,21 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import StudioRenderer from './StudioRenderer'
+import StudioRenderer, { studioResponseMeta } from './StudioRenderer'
 
 describe('contract-free Studio renderer', () => {
+  it('keeps the proactive suggestion separate from the generation reason', () => {
+    expect(studioResponseMeta({
+      conversationId: 'conv_example',
+      generatedBy: 'llm',
+      reason: 'Built two related actions.',
+      suggestion: 'Related actions usually scan better side by side.',
+      layout: { id: 'ui_page', type: 'page', props: {}, children: [] },
+    })).toMatchObject({
+      reason: 'Built two related actions.',
+      suggestion: 'Related actions usually scan better side by side.',
+    })
+  })
+
   it('renders the standalone layout returned by the API', () => {
     render(
       <StudioRenderer

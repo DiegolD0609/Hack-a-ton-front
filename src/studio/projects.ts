@@ -140,6 +140,7 @@ export function studioProjectFromDetail(payload: unknown): StudioProject | null 
         conversationId: id,
         generatedBy: 'history',
         reason: content,
+        suggestion: stringValue(message?.suggestion),
         layout,
       },
     })

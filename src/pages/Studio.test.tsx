@@ -22,12 +22,13 @@ function jsonResponse(payload: unknown): Response {
   return { ok: true, status: 200, json: async () => payload } as Response
 }
 
-function studioResponse(conversationId: string, label: string, reason: string): Response {
+function studioResponse(conversationId: string, label: string, reason: string, suggestion: string | null = null): Response {
   return jsonResponse({
     conversationId,
     schemaVersion: '1',
     generatedBy: 'llm',
     reason,
+    suggestion,
     layout: layout(label),
   })
 }
@@ -36,12 +37,19 @@ function projectSummary(projectId: string, name: string) {
   return { projectId, name, createdAt: NOW, updatedAt: NOW }
 }
 
-function projectDetail(projectId: string, name: string, prompt: string, label: string, reason: string) {
+function projectDetail(
+  projectId: string,
+  name: string,
+  prompt: string,
+  label: string,
+  reason: string,
+  suggestion: string | null = null,
+) {
   return {
     ...projectSummary(projectId, name),
     messages: [
       { role: 'user', content: prompt, layout: null, createdAt: NOW },
-      { role: 'assistant', content: reason, layout: layout(label), createdAt: NOW },
+      { role: 'assistant', content: reason, suggestion, layout: layout(label), createdAt: NOW },
     ],
   }
 }
@@ -65,7 +73,14 @@ describe('Studio server projects', () => {
         projectSummary('conv_beta', 'Account settings'),
       ]))
       .mockResolvedValueOnce(jsonResponse(
-        projectDetail('conv_alpha', 'Landing', 'Create a landing CTA', 'Landing action', 'Landing reasoning'),
+        projectDetail(
+          'conv_alpha',
+          'Landing',
+          'Create a landing CTA',
+          'Landing action',
+          'Landing reasoning',
+          'Keep related calls to action in one horizontal group.',
+        ),
       ))
       .mockResolvedValueOnce(jsonResponse(
         projectDetail('conv_beta', 'Account settings', 'Create security settings', 'Security action', 'Security reasoning'),
@@ -75,6 +90,9 @@ describe('Studio server projects', () => {
 
     expect(await screen.findByRole('button', { name: 'Landing action' })).toBeInTheDocument()
     expect(screen.getByRole('treeitem', { name: /Create a landing CTA/ })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: 'UX suggestion' }))
+      .toHaveTextContent('Keep related calls to action in one horizontal group.')
+    expect(screen.getByText('Landing reasoning', { selector: '.studio-output-reason p' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Cambiar proyecto' }), {
       target: { value: 'conv_beta' },
@@ -156,6 +174,31 @@ describe('Studio server projects', () => {
       name: 'Renamed draft',
     })
     expect(screen.getByRole('button', { name: 'Renombrar proyecto' })).toBeDisabled()
+  })
+
+  it('deletes an unsaved draft after confirmation without calling the backend', async () => {
+    const request = vi.fn<StudioRequest>().mockResolvedValueOnce(jsonResponse([]))
+    vi.stubGlobal('fetch', request)
+    render(<Studio />)
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' }), {
+      target: { value: 'Keep this draft' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear nuevo proyecto' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
+      target: { value: 'Temporary draft' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar proyecto' }))
+    expect(screen.getByRole('dialog', { name: 'Eliminar proyecto' })).toHaveTextContent('Temporary draft')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }))
+
+    expect(screen.getByRole('combobox', { name: 'Cambiar proyecto' }))
+      .toHaveDisplayValue('UI Project 1 · draft')
+    expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' })).toHaveValue('Keep this draft')
+    expect(request).toHaveBeenCalledTimes(1)
   })
 
   it('sends non-blocking project feedback for the selected completed iteration', async () => {
