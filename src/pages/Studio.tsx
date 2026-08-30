@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import IterationTree, { type IterationStatus } from '@/components/studio/IterationTree'
+import ProjectFeedback from '@/components/studio/ProjectFeedback'
 import ProjectHistory from '@/components/studio/ProjectHistory'
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
@@ -8,6 +9,7 @@ import {
   generateStudioUI,
   getStudioProject,
   listStudioProjects,
+  submitStudioProjectFeedback,
   StudioApiError,
 } from '@/studio/api'
 import {
@@ -38,7 +40,9 @@ export default function Studio() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true)
   const [projectsError, setProjectsError] = useState<string | null>(null)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [isRenamingProject, setIsRenamingProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [projectNameDraft, setProjectNameDraft] = useState('')
 
   const activeProject = (
     workspace.projects.find((project) => project.id === workspace.activeProjectId)
@@ -178,7 +182,23 @@ export default function Studio() {
 
   const openProjectCreator = () => {
     setNewProjectName(`UI Project ${workspace.projects.length + 1}`)
+    setIsRenamingProject(false)
     setIsCreatingProject(true)
+  }
+
+  const openProjectRenamer = () => {
+    if (!activeProject.isDraft) return
+    setProjectNameDraft(activeProject.name)
+    setIsCreatingProject(false)
+    setIsRenamingProject(true)
+  }
+
+  const renameDraftProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const name = projectNameDraft.trim()
+    if (!name || !activeProject.isDraft) return
+    updateProject(activeProject.id, (project) => ({ ...project, name }))
+    setIsRenamingProject(false)
   }
 
   const switchProject = (projectId: string) => {
@@ -204,6 +224,10 @@ export default function Studio() {
       suggestion: null,
       conversationId: activeProject.isDraft ? null : activeProject.id,
       response: null,
+      feedbackScore: null,
+      feedbackComment: '',
+      feedbackStatus: 'idle',
+      feedbackMessage: null,
     }
 
     updateProject(projectId, (project) => ({
@@ -293,6 +317,59 @@ export default function Studio() {
     void loadProject(activeProject.id)
   }
 
+  const updateSelectedFeedback = (update: Partial<Pick<
+    StudioProjectIteration,
+    'feedbackScore' | 'feedbackComment' | 'feedbackStatus' | 'feedbackMessage'
+  >>) => {
+    const iterationId = activeProject.selectedId
+    if (iterationId === null) return
+    updateProject(activeProject.id, (project) => ({
+      ...project,
+      iterations: project.iterations.map((iteration) => iteration.id === iterationId
+        ? { ...iteration, ...update }
+        : iteration),
+    }))
+  }
+
+  const submitFeedback = () => {
+    const iteration = activeProject.iterations.find((candidate) => candidate.id === activeProject.selectedId)
+    if (activeProject.isDraft || !iteration || iteration.status !== 'completed' || iteration.feedbackScore === null) {
+      return
+    }
+
+    const projectId = activeProject.id
+    const iterationId = iteration.id
+    const score = iteration.feedbackScore
+    const comment = iteration.feedbackComment
+    updateSelectedFeedback({ feedbackStatus: 'sending', feedbackMessage: 'Sending feedback…' })
+
+    void submitStudioProjectFeedback(apiUrl, projectId, { score, comment })
+      .then(() => {
+        updateProject(projectId, (project) => ({
+          ...project,
+          iterations: project.iterations.map((candidate) => candidate.id === iterationId
+            ? {
+                ...candidate,
+                feedbackStatus: 'sent',
+                feedbackMessage: 'Feedback saved. It will guide the next iteration.',
+              }
+            : candidate),
+        }))
+      })
+      .catch((requestError: unknown) => {
+        updateProject(projectId, (project) => ({
+          ...project,
+          iterations: project.iterations.map((candidate) => candidate.id === iterationId
+            ? {
+                ...candidate,
+                feedbackStatus: 'error',
+                feedbackMessage: errorMessage(requestError, 'Feedback could not be saved.'),
+              }
+            : candidate),
+        }))
+      })
+  }
+
   return (
     <div className="studio-shell">
       <header className="studio-topbar">
@@ -329,6 +406,17 @@ export default function Studio() {
           >
             +
           </button>
+          <button
+            type="button"
+            aria-label="Renombrar proyecto"
+            title={activeProject.isDraft
+              ? 'Rename this draft before its first generation'
+              : 'Backend endpoint required to rename saved projects'}
+            disabled={isGenerating || isLoadingProjects || !activeProject.isDraft}
+            onClick={openProjectRenamer}
+          >
+            ✎
+          </button>
 
           {isCreatingProject ? (
             <form className="studio-project-dialog" role="dialog" aria-label="Nuevo proyecto" onSubmit={createProject}>
@@ -343,6 +431,24 @@ export default function Studio() {
               <div>
                 <button type="button" onClick={() => setIsCreatingProject(false)}>Cancel</button>
                 <button type="submit" disabled={!newProjectName.trim()}>Create project</button>
+              </div>
+            </form>
+          ) : null}
+
+          {isRenamingProject ? (
+            <form className="studio-project-dialog" role="dialog" aria-label="Renombrar proyecto" onSubmit={renameDraftProject}>
+              <label htmlFor="rename-project-name">Project name</label>
+              <input
+                id="rename-project-name"
+                value={projectNameDraft}
+                maxLength={120}
+                autoFocus
+                onChange={(event) => setProjectNameDraft(event.target.value)}
+              />
+              <p className="studio-project-dialog-note">The name will be persisted with the first generation.</p>
+              <div>
+                <button type="button" onClick={() => setIsRenamingProject(false)}>Cancel</button>
+                <button type="submit" disabled={!projectNameDraft.trim()}>Save name</button>
               </div>
             </form>
           ) : null}
@@ -410,6 +516,24 @@ export default function Studio() {
             selectedId={activeProject.selectedId}
             onSelect={selectIteration}
           />
+
+          {!activeProject.isDraft ? (
+            <ProjectFeedback
+              iteration={selectedIteration}
+              projectName={activeProject.name}
+              onCommentChange={(feedbackComment) => updateSelectedFeedback({
+                feedbackComment,
+                feedbackStatus: 'idle',
+                feedbackMessage: null,
+              })}
+              onScoreChange={(feedbackScore) => updateSelectedFeedback({
+                feedbackScore,
+                feedbackStatus: 'idle',
+                feedbackMessage: null,
+              })}
+              onSubmit={submitFeedback}
+            />
+          ) : null}
 
           {projectsError || activeProject.error ? (
             <div className="studio-error" role="alert">

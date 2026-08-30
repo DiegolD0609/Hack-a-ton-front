@@ -132,6 +132,58 @@ describe('Studio server projects', () => {
     expect(request.mock.calls[3][0]).toMatch(/\/studio\/projects\/conv_dashboard$/)
   })
 
+  it('renames a draft before its first generation and persists that name through generate', async () => {
+    const request = vi.fn<StudioRequest>()
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(studioResponse('conv_renamed', 'Renamed action', 'Renamed project ready'))
+    vi.stubGlobal('fetch', request)
+    render(<Studio />)
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Renombrar proyecto' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
+      target: { value: '  Renamed draft  ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
+
+    expect(screen.getByRole('combobox', { name: 'Cambiar proyecto' }))
+      .toHaveDisplayValue('Renamed draft · draft')
+
+    generate('Create the renamed project')
+    expect(await screen.findByRole('button', { name: 'Renamed action' })).toBeInTheDocument()
+    expect(JSON.parse(String(request.mock.calls[1][1].body))).toEqual({
+      prompt: 'Create the renamed project',
+      name: 'Renamed draft',
+    })
+    expect(screen.getByRole('button', { name: 'Renombrar proyecto' })).toBeDisabled()
+  })
+
+  it('sends non-blocking project feedback for the selected completed iteration', async () => {
+    const request = vi.fn<StudioRequest>()
+      .mockResolvedValueOnce(jsonResponse([projectSummary('conv_alpha', 'Landing')]))
+      .mockResolvedValueOnce(jsonResponse(
+        projectDetail('conv_alpha', 'Landing', 'Create a landing CTA', 'Landing action', 'Landing reasoning'),
+      ))
+      .mockResolvedValueOnce({ ok: true, status: 204 } as Response)
+    vi.stubGlobal('fetch', request)
+    render(<Studio />)
+
+    expect(await screen.findByRole('heading', { name: 'Rate Landing after iteration 01' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Works well' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Comentario de feedback' }), {
+      target: { value: 'Keep this hierarchy.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }))
+
+    expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' })).toBeEnabled()
+    expect(await screen.findByText('Feedback saved. It will guide the next iteration.')).toBeInTheDocument()
+    expect(request.mock.calls[2][0]).toMatch(/\/studio\/projects\/conv_alpha\/feedback$/)
+    expect(JSON.parse(String(request.mock.calls[2][1].body))).toEqual({
+      score: 5,
+      comment: 'Keep this hierarchy.',
+    })
+  })
+
   it('recreates a missing project with its name after a stale conversation 404', async () => {
     const request = vi.fn<StudioRequest>()
       .mockResolvedValueOnce(jsonResponse([]))

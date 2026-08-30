@@ -633,6 +633,13 @@
   margin-top: 0.65rem;
 }
 
+.studio-project-dialog-note {
+  margin-top: 0.45rem;
+  color: rgb(23 23 20 / 0.5);
+  font-size: 0.58rem;
+  line-height: 1.4;
+}
+
 .studio-project-dialog button {
   border-radius: 0.55rem;
   padding: 0.48rem 0.65rem;
@@ -1249,6 +1256,17 @@
   line-height: 1.35;
 }
 
+.studio-feedback-context {
+  margin-top: 0.35rem;
+  color: rgb(255 255 255 / 0.52);
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.studio-feedback-card .grid {
+  margin-top: 0.8rem;
+}
+
 .studio-feedback-card .grid button {
   display: flex;
   align-items: center;
@@ -1266,6 +1284,11 @@
   border-color: var(--studio-acid);
   background: var(--studio-acid);
   color: var(--studio-ink);
+}
+
+.studio-feedback-card .grid button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .studio-feedback-card label {
@@ -1294,6 +1317,15 @@
   color: rgb(255 255 255 / 0.32);
 }
 
+.studio-feedback-count {
+  display: block;
+  margin-top: 0.25rem;
+  text-align: right;
+  color: rgb(255 255 255 / 0.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.52rem;
+}
+
 .studio-feedback-submit {
   display: flex;
   width: 100%;
@@ -1312,6 +1344,25 @@
 .studio-feedback-submit:disabled {
   cursor: not-allowed;
   opacity: 0.35;
+}
+
+.studio-feedback-status {
+  margin-top: 0.6rem;
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 0.08);
+  padding: 0.55rem 0.65rem;
+  color: rgb(255 255 255 / 0.7);
+  font-size: 0.6rem;
+  line-height: 1.4;
+}
+
+.studio-feedback-status.is-sent {
+  color: var(--studio-acid);
+}
+
+.studio-feedback-status.is-error {
+  background: rgb(208 90 67 / 0.2);
+  color: #ffd0c6;
 }
 
 .studio-error {
