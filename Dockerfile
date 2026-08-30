@@ -12,9 +12,9 @@ RUN npm ci
 # Copy source and build
 COPY . .
 
-# Vite exposes VITE_* env vars at BUILD time.
-# Pass them with --build-arg or a .env file:
-#   docker build --build-arg VITE_API_URL=https://api.example.com .
+# Vite exposes VITE_* env vars at BUILD time. Keep the browser on /api:
+# nginx proxies that path to the separately deployed backend, including WS
+# upgrades. This avoids a CORS/cross-origin WebSocket dependency.
 ARG VITE_API_URL=/api
 ARG VITE_DEMO_TOKEN
 ARG VITE_RUNTIME_POLLING=false
@@ -33,7 +33,7 @@ FROM nginx:stable-alpine AS production
 RUN rm /etc/nginx/conf.d/default.conf \
     && sed -i 's/worker_processes  auto;/worker_processes  1;/' /etc/nginx/nginx.conf
 
-# Custom nginx config with SPA fallback and API proxy
+# Custom nginx config with SPA fallback and an external API proxy.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets from build stage

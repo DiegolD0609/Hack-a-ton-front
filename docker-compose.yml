@@ -9,7 +9,10 @@ services:
     ports:
       - "3000:80"
     environment:
-      - BACKEND_URL=${BACKEND_URL:-http://host.docker.internal:8000}
+      # The backend and PostgreSQL live in their own Railway service.
+      # Override this with http://host.docker.internal:8000 only when testing
+      # a local backend from Docker Desktop.
+      - BACKEND_URL=${BACKEND_URL:-https://hack-a-ton-end-production.up.railway.app}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
