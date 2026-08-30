@@ -7,8 +7,9 @@ services:
         VITE_DEMO_TOKEN: ${VITE_DEMO_TOKEN:-replace-with-a-shared-demo-token}
         VITE_RUNTIME_POLLING: ${VITE_RUNTIME_POLLING:-true}
     ports:
-      - "3000:80"
+      - "3000:8080"
     environment:
+      - PORT=8080
       # The backend and PostgreSQL live in their own Railway service.
       # Override this with http://host.docker.internal:8000 only when testing
       # a local backend from Docker Desktop.

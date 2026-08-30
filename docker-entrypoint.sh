@@ -9,7 +9,7 @@ set -e
 # development, for example: docker run -e BACKEND_URL=http://host.docker.internal:8000 ...
 
 BACKEND_URL="${BACKEND_URL:-https://hack-a-ton-end-production.up.railway.app}"
-PORT="${PORT:-80}"
+PORT="${PORT:-8080}"
 
 # Docker Desktop's local backend alias must become an address before Nginx
 # resolves a variable-based upstream. This is a development override only;
