@@ -1,9 +1,18 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('API-only UI studio', () => {
   it('starts with an empty prompt and an empty playground', () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [],
+    }))
     render(<App />)
     expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' })).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Generar UI' })).toBeDisabled()

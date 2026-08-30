@@ -4,35 +4,41 @@ import ProjectHistory from '@/components/studio/ProjectHistory'
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
 import { studioResponseMeta } from '@/studio/StudioRenderer'
-import { generateStudioUI, StudioApiError } from '@/studio/api'
+import {
+  generateStudioUI,
+  getStudioProject,
+  listStudioProjects,
+  StudioApiError,
+} from '@/studio/api'
 import {
   createStudioProject,
-  loadStudioWorkspace,
-  saveStudioWorkspace,
+  createStudioWorkspace,
+  projectFromSummary,
+  studioProjectFromDetail,
+  studioProjectSummaries,
   type StudioProject,
   type StudioProjectIteration,
 } from '@/studio/projects'
 
-function latestCompletedIteration(
-  iterations: StudioProjectIteration[],
-  conversationId: string | null,
-): StudioProjectIteration | null {
-  if (!conversationId) return null
+function latestCompletedIteration(iterations: StudioProjectIteration[]): StudioProjectIteration | null {
   for (let index = iterations.length - 1; index >= 0; index -= 1) {
-    const iteration = iterations[index]
-    if (iteration.conversationId === conversationId && iteration.status === 'completed') {
-      return iteration
-    }
+    if (iterations[index].status === 'completed') return iterations[index]
   }
   return null
 }
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function Studio() {
-  const [workspace, setWorkspace] = useState(loadStudioWorkspace)
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+  const [workspace, setWorkspace] = useState(createStudioWorkspace)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [projectsError, setProjectsError] = useState<string | null>(null)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
-  const [storageError, setStorageError] = useState(false)
 
   const activeProject = (
     workspace.projects.find((project) => project.id === workspace.activeProjectId)
@@ -46,36 +52,127 @@ export default function Studio() {
     ? selectedIteration.response
     : null
   const selectedMeta = studioResponseMeta(selectedResponse)
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-
-  useEffect(() => {
-    setStorageError(!saveStudioWorkspace(workspace))
-  }, [workspace])
 
   const updateProject = (projectId: string, update: (project: StudioProject) => StudioProject) => {
-    setWorkspace((current) => ({
-      ...current,
-      projects: current.projects.map((project) => project.id === projectId ? update(project) : project),
-    }))
+    setWorkspace((current) => {
+      let activeProjectId = current.activeProjectId
+      const projects = current.projects.map((project) => {
+        if (project.id !== projectId) return project
+        const updated = update(project)
+        if (activeProjectId === project.id && updated.id !== project.id) {
+          activeProjectId = updated.id
+        }
+        return updated
+      })
+      return { activeProjectId, projects }
+    })
   }
 
-  const sessionStatus = activeProject.error
+  const removeMissingProject = (projectId: string) => {
+    setWorkspace((current) => {
+      const remaining = current.projects.filter((project) => project.id !== projectId)
+      const loadedFallback = remaining.find((project) => project.isLoaded)
+      if (loadedFallback) {
+        return {
+          activeProjectId: current.activeProjectId === projectId ? loadedFallback.id : current.activeProjectId,
+          projects: remaining,
+        }
+      }
+      const draft = createStudioProject(`UI Project ${remaining.length + 1}`)
+      return { activeProjectId: draft.id, projects: [...remaining, draft] }
+    })
+  }
+
+  const loadProject = async (projectId: string) => {
+    updateProject(projectId, (project) => ({ ...project, isLoaded: false, error: null }))
+    try {
+      const detail = studioProjectFromDetail(await getStudioProject(apiUrl, projectId))
+      if (!detail) throw new Error('El backend devolvió un proyecto inválido.')
+      updateProject(projectId, (project) => ({ ...detail, prompt: project.prompt }))
+      setProjectsError(null)
+    } catch (requestError) {
+      if (requestError instanceof StudioApiError && requestError.status === 404) {
+        removeMissingProject(projectId)
+      } else {
+        updateProject(projectId, (project) => ({
+          ...project,
+          isLoaded: true,
+          error: errorMessage(requestError, 'No fue posible cargar el proyecto.'),
+        }))
+      }
+      setProjectsError(errorMessage(requestError, 'No fue posible cargar el proyecto.'))
+    }
+  }
+
+  useEffect(() => {
+    window.localStorage.removeItem('kernel-panic.studio.workspace.v1')
+    let cancelled = false
+
+    const load = async () => {
+      setIsLoadingProjects(true)
+      try {
+        const summaries = studioProjectSummaries(await listStudioProjects(apiUrl))
+        if (cancelled) return
+        if (!summaries.length) {
+          setWorkspace(createStudioWorkspace())
+          setProjectsError(null)
+          return
+        }
+
+        const projects = summaries.map(projectFromSummary)
+        const firstProjectId = projects[0].id
+        setWorkspace({ activeProjectId: firstProjectId, projects })
+        const detail = studioProjectFromDetail(await getStudioProject(apiUrl, firstProjectId))
+        if (cancelled) return
+        if (!detail) throw new Error('El backend devolvió un proyecto inválido.')
+        setWorkspace((current) => ({
+          ...current,
+          projects: current.projects.map((project) => project.id === firstProjectId ? detail : project),
+        }))
+        setProjectsError(null)
+      } catch (requestError) {
+        if (!cancelled) {
+          if (requestError instanceof StudioApiError && requestError.status === 404) {
+            setWorkspace(createStudioWorkspace())
+          }
+          setProjectsError(errorMessage(requestError, 'No fue posible listar los proyectos.'))
+        }
+      } finally {
+        if (!cancelled) setIsLoadingProjects(false)
+      }
+    }
+
+    void load()
+    return () => { cancelled = true }
+  }, [apiUrl])
+
+  const sessionStatus = projectsError || activeProject.error
     ? 'Atención requerida'
     : isGenerating
       ? 'Generando en el API'
-      : selectedResponse !== null
-        ? `Iteración ${String(selectedIteration?.id ?? 0).padStart(2, '0')}`
-        : 'Playground vacío'
+      : isLoadingProjects || !activeProject.isLoaded
+        ? 'Cargando proyecto'
+        : selectedResponse !== null
+          ? `Iteración ${String(selectedIteration?.id ?? 0).padStart(2, '0')}`
+          : 'Playground vacío'
 
   const createProject = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const project = createStudioProject(newProjectName)
-    setWorkspace((current) => ({
-      ...current,
-      activeProjectId: project.id,
-      projects: [...current.projects, project],
-    }))
+    setWorkspace((current) => {
+      const active = current.projects.find((candidate) => candidate.id === current.activeProjectId)
+      const replaceEmptyDraft = active?.isDraft
+        && active.iterations.length === 0
+        && !active.prompt.trim()
+      return {
+        activeProjectId: project.id,
+        projects: replaceEmptyDraft
+          ? current.projects.map((candidate) => candidate.id === current.activeProjectId ? project : candidate)
+          : [...current.projects, project],
+      }
+    })
     setNewProjectName('')
+    setProjectsError(null)
     setIsCreatingProject(false)
   }
 
@@ -84,13 +181,20 @@ export default function Studio() {
     setIsCreatingProject(true)
   }
 
+  const switchProject = (projectId: string) => {
+    const project = workspace.projects.find((candidate) => candidate.id === projectId)
+    if (!project) return
+    setWorkspace((current) => ({ ...current, activeProjectId: projectId }))
+    setProjectsError(null)
+    if (!project.isDraft && !project.isLoaded) void loadProject(projectId)
+  }
+
   const generate = async () => {
     const exactPrompt = activeProject.prompt.trim()
-    if (!exactPrompt || isGenerating) return
+    if (!exactPrompt || isGenerating || !activeProject.isLoaded) return
 
     const projectId = activeProject.id
-    const selectedConversationId = selectedIteration?.conversationId ?? null
-    const parent = latestCompletedIteration(activeProject.iterations, selectedConversationId)
+    const parent = latestCompletedIteration(activeProject.iterations)
     const iterationId = Math.max(0, ...activeProject.iterations.map((iteration) => iteration.id)) + 1
     const pending: StudioProjectIteration = {
       id: iterationId,
@@ -98,7 +202,7 @@ export default function Studio() {
       prompt: exactPrompt,
       status: 'generating',
       suggestion: null,
-      conversationId: parent?.conversationId ?? null,
+      conversationId: activeProject.isDraft ? null : activeProject.id,
       response: null,
     }
 
@@ -109,30 +213,37 @@ export default function Studio() {
       error: null,
     }))
     setIsGenerating(true)
+    setProjectsError(null)
     try {
       let generated: unknown
       try {
-        generated = await generateStudioUI(apiUrl, exactPrompt, parent?.conversationId)
+        generated = await generateStudioUI(apiUrl, exactPrompt, activeProject.isDraft
+          ? { name: activeProject.name }
+          : { conversationId: activeProject.id })
       } catch (requestError) {
-        if (!(requestError instanceof StudioApiError) || requestError.status !== 404 || !parent) {
+        if (!(requestError instanceof StudioApiError) || requestError.status !== 404 || activeProject.isDraft) {
           throw requestError
         }
 
         updateProject(projectId, (project) => ({
           ...project,
-          iterations: project.iterations.map((iteration) => iteration.id === iterationId
-            ? { ...iteration, parentId: null, conversationId: null }
-            : iteration),
+          isDraft: true,
+          iterations: [{ ...pending, parentId: null, conversationId: null }],
+          selectedId: iterationId,
         }))
-        generated = await generateStudioUI(apiUrl, exactPrompt)
+        generated = await generateStudioUI(apiUrl, exactPrompt, { name: activeProject.name })
       }
 
       const responseMeta = studioResponseMeta(generated)
-      if (!responseMeta.conversationId) {
-        throw new Error('El API no devolvió conversationId.')
-      }
+      if (!responseMeta.conversationId) throw new Error('El API no devolvió conversationId.')
+      const timestamp = new Date().toISOString()
       updateProject(projectId, (project) => ({
         ...project,
+        id: responseMeta.conversationId as string,
+        isDraft: false,
+        isLoaded: true,
+        createdAt: project.createdAt ?? timestamp,
+        updatedAt: timestamp,
         iterations: project.iterations.map((iteration) => iteration.id === iterationId
           ? {
               ...iteration,
@@ -144,7 +255,7 @@ export default function Studio() {
           : iteration),
       }))
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'No fue posible generar la interfaz.'
+      const message = errorMessage(requestError, 'No fue posible generar la interfaz.')
       updateProject(projectId, (project) => ({
         ...project,
         error: message,
@@ -168,14 +279,18 @@ export default function Studio() {
     })
   }
 
-  const clear = () => {
-    updateProject(activeProject.id, (project) => ({
-      ...project,
-      prompt: '',
-      iterations: [],
-      selectedId: null,
-      error: null,
-    }))
+  const refreshProject = () => {
+    if (activeProject.isDraft) {
+      updateProject(activeProject.id, (project) => ({
+        ...project,
+        prompt: '',
+        iterations: [],
+        selectedId: null,
+        error: null,
+      }))
+      return
+    }
+    void loadProject(activeProject.id)
   }
 
   return (
@@ -196,21 +311,20 @@ export default function Studio() {
             <select
               aria-label="Cambiar proyecto"
               value={activeProject.id}
-              disabled={isGenerating}
-              onChange={(event) => setWorkspace((current) => ({
-                ...current,
-                activeProjectId: event.target.value,
-              }))}
+              disabled={isGenerating || isLoadingProjects}
+              onChange={(event) => switchProject(event.target.value)}
             >
               {workspace.projects.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
+                <option key={project.id} value={project.id}>
+                  {project.name}{project.isDraft ? ' · draft' : ''}
+                </option>
               ))}
             </select>
           </label>
           <button
             type="button"
             aria-label="Crear nuevo proyecto"
-            disabled={isGenerating}
+            disabled={isGenerating || isLoadingProjects}
             onClick={openProjectCreator}
           >
             +
@@ -222,7 +336,7 @@ export default function Studio() {
               <input
                 id="new-project-name"
                 value={newProjectName}
-                maxLength={60}
+                maxLength={120}
                 autoFocus
                 onChange={(event) => setNewProjectName(event.target.value)}
               />
@@ -236,10 +350,16 @@ export default function Studio() {
 
         <div className="studio-top-actions">
           <div className="studio-session-status" role="status">
-            <span className={`status-orb ${activeProject.error ? 'is-paused' : ''}`} />
+            <span className={`status-orb ${projectsError || activeProject.error ? 'is-paused' : ''}`} />
             <span>{sessionStatus}</span>
           </div>
-          <button type="button" className="studio-icon-button" aria-label="Limpiar playground" onClick={clear}>
+          <button
+            type="button"
+            className="studio-icon-button"
+            aria-label="Recargar proyecto"
+            disabled={isGenerating || !activeProject.isLoaded}
+            onClick={refreshProject}
+          >
             <StudioIcon name="refresh" />
           </button>
         </div>
@@ -258,7 +378,7 @@ export default function Studio() {
               className="studio-prompt"
               value={activeProject.prompt}
               maxLength={2000}
-              disabled={isGenerating}
+              disabled={isGenerating || !activeProject.isLoaded}
               placeholder="Ej. Genera exclusivamente dos botones: Aceptar y Cancelar."
               onChange={(event) => updateProject(activeProject.id, (project) => ({
                 ...project,
@@ -270,7 +390,7 @@ export default function Studio() {
               <button
                 type="button"
                 className="studio-run-button"
-                disabled={!activeProject.prompt.trim() || isGenerating}
+                disabled={!activeProject.prompt.trim() || isGenerating || !activeProject.isLoaded}
                 onClick={() => void generate()}
               >
                 {isGenerating ? <StudioIcon name="refresh" className="animate-spin" /> : <StudioIcon name="arrow" />}
@@ -291,17 +411,10 @@ export default function Studio() {
             onSelect={selectIteration}
           />
 
-          {activeProject.error ? (
+          {projectsError || activeProject.error ? (
             <div className="studio-error" role="alert">
-              <strong>El API no pudo responder</strong>
-              <span>{activeProject.error}</span>
-            </div>
-          ) : null}
-
-          {storageError ? (
-            <div className="studio-error" role="alert">
-              <strong>Project storage is full</strong>
-              <span>The current session still works, but recent changes may not survive a refresh.</span>
+              <strong>El API no pudo cargar el proyecto</strong>
+              <span>{projectsError ?? activeProject.error}</span>
             </div>
           ) : null}
         </aside>
@@ -309,7 +422,7 @@ export default function Studio() {
         <div className="studio-main-grid">
           <StudioCanvas
             response={selectedResponse}
-            isBuilding={isGenerating}
+            isBuilding={isGenerating || !activeProject.isLoaded}
             iterationId={selectedIteration?.id ?? null}
           />
 

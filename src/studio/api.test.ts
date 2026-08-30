@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generateStudioUI, type StudioRequest } from './api'
+import { generateStudioUI, getStudioProject, listStudioProjects, type StudioRequest } from './api'
 
 function jsonResponse(payload: unknown): Response {
   return { ok: true, json: async () => payload } as Response
@@ -14,7 +14,7 @@ describe('standalone Studio API', () => {
     }
     const request = vi.fn<StudioRequest>().mockResolvedValue(jsonResponse(response))
 
-    await expect(generateStudioUI('/api', '  Haz exclusivamente dos botones  ', null, request))
+    await expect(generateStudioUI('/api', '  Haz exclusivamente dos botones  ', { name: 'Landing v1' }, request))
       .resolves.toBe(response)
 
     expect(request).toHaveBeenCalledTimes(1)
@@ -22,19 +22,34 @@ describe('standalone Studio API', () => {
     expect(request.mock.calls[0][1]).toMatchObject({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: 'Haz exclusivamente dos botones' }),
+      body: JSON.stringify({ prompt: 'Haz exclusivamente dos botones', name: 'Landing v1' }),
     })
   })
 
   it('continues a conversation without resending history or layout', async () => {
     const request = vi.fn<StudioRequest>().mockResolvedValue(jsonResponse({ generatedBy: 'llm' }))
 
-    await generateStudioUI('/api', 'Ahora apílalos', 'conv_example', request)
+    await generateStudioUI('/api', 'Ahora apílalos', { conversationId: 'conv_example', name: 'Ignored' }, request)
 
     expect(JSON.parse(String(request.mock.calls[0][1].body))).toEqual({
       prompt: 'Ahora apílalos',
       conversationId: 'conv_example',
     })
+  })
+
+  it('lists projects and reads one complete project', async () => {
+    const projects = [{ projectId: 'conv_one', name: 'Landing v1' }]
+    const detail = { ...projects[0], messages: [] }
+    const request = vi.fn<StudioRequest>()
+      .mockResolvedValueOnce(jsonResponse(projects))
+      .mockResolvedValueOnce(jsonResponse(detail))
+
+    await expect(listStudioProjects('/api', request)).resolves.toBe(projects)
+    await expect(getStudioProject('/api', 'conv_one', request)).resolves.toBe(detail)
+
+    expect(request.mock.calls[0][0]).toMatch(/\/api\/studio\/projects$/)
+    expect(request.mock.calls[0][1]).toMatchObject({ method: 'GET' })
+    expect(request.mock.calls[1][0]).toMatch(/\/api\/studio\/projects\/conv_one$/)
   })
 
   it('surfaces the backend error without falling back to a run', async () => {
@@ -44,7 +59,7 @@ describe('standalone Studio API', () => {
       json: async () => ({ detail: 'Prompt inválido' }),
     } as Response)
 
-    await expect(generateStudioUI('/api', 'dos botones', null, request))
+    await expect(generateStudioUI('/api', 'dos botones', {}, request))
       .rejects.toMatchObject({ message: 'Prompt inválido', status: 422 })
     expect(request).toHaveBeenCalledTimes(1)
   })
