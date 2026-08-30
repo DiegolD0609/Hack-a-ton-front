@@ -1,156 +1,154 @@
 # Kernel Panic · Agent UI Runtime
 
-Frontend React/Vite del runtime seguro de Kernel Panic: recibe una `UISpec`
-declarativa, la valida y la convierte en una interfaz viva. Una intervención
+Frontend React/Vite del runtime seguro de Kernel Panic. Recibe una `UISpec`
+declarativa, la valida y la convierte en una interfaz viva; una intervención
 humana vuelve al agente como un `ActionEvent` tipado.
+
+## Alcance
+
+El repositorio contiene únicamente la superficie definida por el roadmap:
+
+- renderer recursivo y fallback por nodo;
+- registry v1.1 de diez componentes, incluido un mapa SVG offline;
+- reducer, WebSocket, reconexión por snapshot y fallback de polling;
+- inspector de `UISpec` con `generatedBy`, `reason` y `stateVersion`;
+- editor de workflow que genera pasos, muestra el diff y ejecuta `v(n+1)`;
+- historia persistente de runs por operación y controles M1–M3;
+- panel de Ari con recomendaciones acotadas por policy y `proposedStep`;
+- design tokens normal, warning y critical;
+- landing de presentación con un único destino funcional: la demo;
+- shell de demo para el walking skeleton y el golden path.
+
+No incluye autenticación, dashboard logístico, preferencias ni pantallas de
+producto fijas. La landing presenta el concepto; la interfaz operativa procede
+del runtime.
 
 ## Inicio rápido
 
-Requisitos: Node.js 22 y npm 10 o posteriores.
+Requisitos: Node.js 22, npm 10 y el backend de Kernel Panic.
 
 ```bash
 npm ci
+cp .env.example .env
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:5173`.
-
-## Rutas principales
-
-- `/landing`: presentación del producto y hero multimedia.
-- `/demo`: walking skeleton conectado por WebSocket; acepta `?runId=run_...`.
-- `/login` y `/register`: autenticación mock o conectada a API.
-- `/dashboard`: centro de operaciones protegido.
-- `/settings`: preferencias locales de la cuenta demo.
+Abre `http://localhost:5173/landing` para la presentación,
+`http://localhost:5173/demo` para entrar al runtime o
+`http://localhost:5173/editor` para crear una versión ejecutable.
 
 ## Variables de entorno
 
-Copia `.env.example` como `.env`:
-
 ```env
-VITE_API_URL=http://127.0.0.1:8000
+VITE_API_URL=/api
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 VITE_RUNTIME_POLLING=true
+VITE_ASSISTANT_ENABLED=true
+BACKEND_URL=http://localhost:8000
 ```
 
-En desarrollo local, `VITE_API_URL` puede apuntar directamente a FastAPI. Para
-usar el proxy HTTP/WS de Vite, define `VITE_API_URL=/api` y
-`BACKEND_URL=http://127.0.0.1:8000`. El build de Docker usa
-`http://localhost:8000/api`, que Nginx proxifica al backend configurado en
-`BACKEND_URL`.
-
+Vite y Nginx envían `/api/*` a `BACKEND_URL` y eliminan el prefijo `/api`.
 `VITE_DEMO_TOKEN` debe coincidir con `DEMO_TOKEN` del backend para el handshake
-WebSocket. Es un control exclusivo de la demo y queda visible en el bundle Vite;
-no debe reutilizarse como secreto de producción.
+WebSocket. Es un control de demo visible en el bundle, no un secreto de
+producción.
 
-## Contratos congelados (Phase 0)
+## Runtime y contratos
 
-El espejo TypeScript de `RunProjection`, `UISpec`, `ActionEvent`, `RunEvent`,
-los nueve nodos permitidos y el envelope WebSocket vive en
-`src/runtime/contracts.ts`. La autoridad ejecutable es Pydantic en el backend;
-ambos archivos se actualizan juntos y conservan `schemaVersion = "1"`.
+`src/runtime/contracts.ts` refleja manualmente los contratos Pydantic del
+backend y conserva `schemaVersion = "1"`. Los JSON Schema generados viven en
+`src/runtime/generated/` y AJV valida cada envelope antes de pasarlo al reducer.
+Los JSON Schema no se editan de forma unilateral. Por la restricción explícita
+de no tocar backend en esta entrega, la adenda TypeScript v1.1 queda adelantada
+y documentada para que el equipo backend la espeje y regenere los artefactos.
 
-Los tokens semánticos del runtime (spacing, jerarquía y emphasis
-normal/warning/critical) están en `src/index.css`.
+El registry admite `page`, `section`, `metric`, `alert`, `timeline`, `keyValue`,
+`compare`, `decisionPanel`, `step` y `map`. Un tipo desconocido o props inválidas
+se aíslan con `GenericStepCard`; nunca provocan una pantalla blanca. `map` usa
+SVG inline y no requiere tiles ni red externa. Hasta que backend regenere los
+schemas, `schemaExtensions.ts` amplía en memoria los artefactos v1 sin editarlos
+a mano.
 
-Los JSON Schema de `UISpec` y del envelope servidor se exportan desde los
-modelos Pydantic congelados y se guardan en `src/runtime/generated/`. AJV los
-ejecuta antes de que un mensaje WebSocket entre al reducer. No deben editarse a
-mano ni regenerarse desde los tipos TypeScript.
+Los endpoints y payloads que backend debe implementar para M1–M4 están fijados
+en [`docs/BACKEND_INTEGRATION_V2.md`](docs/BACKEND_INTEGRATION_V2.md).
+La matriz completa de alcance y dependencias frontend está en
+[`docs/FRONTEND_ROADMAP_V2.md`](docs/FRONTEND_ROADMAP_V2.md).
 
-## Fases 1–2 · skeleton y golden path
-
-La ruta `/demo` permite crear un skeleton G1 o iniciar el golden path real. Una
-vez que el backend devuelve el `runId`, abre:
+La demo inicia `POST /runs`, avanza con `POST /demo/advance` y mantiene el canal:
 
 ```text
 GET ws(s)://<VITE_API_URL>/ws/runs/{runId}?token=<VITE_DEMO_TOKEN>
 ```
 
-“Skeleton H3” solicita al backend:
+Al reconectar obtiene `GET /runs/{id}/snapshot`; con
+`VITE_RUNTIME_POLLING=true` usa polling mientras recupera el WebSocket.
 
-```http
-POST /demo/skeleton
+## Fase 5 · fallbacks y freeze
+
+La `UISpec` recibida desde la API se anima durante 200 ms y conserva una vista
+vacía explícita antes del primer payload. Cerrar y reabrir la demo reconstruye
+la UI desde el snapshot persistido; si el WebSocket cae, el runtime cambia a
+polling y vuelve al canal vivo cuando la conexión se recupera.
+
+El proxy Nginx resuelve dinámicamente el host privado de `BACKEND_URL`. Esto
+permite que Railway reubique o redespliegue el backend sin dejar al frontend
+anclado a una dirección anterior.
+
+Para probar el modo determinista y local, desactiva los dos upgrades LLM en el
+backend. Después de construir las imágenes una vez, el flujo no requiere una
+API externa:
+
+```env
+LLM_UPGRADE_ENABLED=false
+GENERIC_STEP_LLM_ENABLED=false
+VITE_RUNTIME_POLLING=true
 ```
 
-“Iniciar golden path” usa `POST /runs`; “Avanzar demo” llama
-`POST /demo/advance` hasta recorrer los cinco pasos del fixture. El frontend
-espera `UI_UPDATED`, guarda `projection` + `uiSpec` en un reducer y renderiza
-recursivamente `page`, `section`, `metric`, `decisionPanel`, `step`, `alert`,
-`timeline` y `keyValue` con tokens normal/warning/critical. `compare` se integra
-en Fase 3, como establece el roadmap.
+## Editor de workflow
 
-Un tipo no registrado o props inválidas quedan aislados como
-`GenericStepCard`; nunca derriban la página completa. El reducer reconoce los
-doce mensajes P0 del contrato congelado.
+`/editor` genera un `StepDefinition` genérico desde `title`, `objective`, rutas
+de `inputs` y `requiresHumanReview`. La vista JSON y el diff se actualizan en
+vivo. Al confirmar, el frontend crea `v(n+1)` con el flow base más el paso
+generado mediante
+`POST /workflows/{id}/versions`; “Run with v(n+1)” inicia un run asociado a su
+`workflowVersionId` y lo abre en `/demo`.
 
-Al pulsar una acción permitida, el cliente envía `ACTION_SUBMITTED` por el mismo
-socket. Su payload es un `ActionEvent` con `idempotencyKey` de cliente y sin
-`eventId`; el panel muestra `submitting`, `accepted` o `rejected` según la
-respuesta del backend.
+La demo identifica versiones posteriores a v1 como trial-by-fire y permite
+exportar su event log JSON directamente desde el header del runtime.
 
-El backend recompone y emite una nueva `UI_UPDATED` tras aceptar la acción. Los
-tests del runtime mantienen además un socket falso para validar el loop sin
-depender de infraestructura local.
+Si se entra desde un run activo, `/editor?runId=...` reutiliza su proyección
+como baseline. Sin `runId`, la primera confirmación crea un run base para
+identificar el workflow vigente.
 
-## Fase 3 · resiliencia e inspector
-
-El registry ya contiene las nueve primitivas congeladas, incluido `compare`.
-En cada conexión y reconexión el cliente obtiene
-`GET /runs/{id}/snapshot`; si el WebSocket cae y
-`VITE_RUNTIME_POLLING=true`, mantiene la pantalla actualizada por polling
-mientras reintenta el canal vivo.
-
-“Inspeccionar UISpec” abre el JSON vivo y expone `generatedBy`, `reason`,
-`stateVersion` y la versión del workflow. Así se puede observar el cambio de la
-UI determinista al upgrade LLM sin ocultar el contrato que llegó al renderer.
-
-## Comandos
-
-| Comando | Uso |
-|---|---|
-| `npm run dev` | Servidor local con HMR |
-| `npm run lint` | Análisis estático con oxlint |
-| `npm test` | Pruebas de rutas, validación y sesión |
-| `npm run build` | Type-check y bundle de producción |
-| `npm run preview` | Vista previa del bundle |
+El mismo formulario aparece plegado dentro de `/demo` como fallback del trial.
+Ari puede proponer el `StepDefinition`; el botón del panel crea la nueva versión
+y abre su run por los mismos endpoints del editor manual.
 
 ## Estructura
 
 ```text
 src/
-├── components/ui-kit/ primitivas visuales del registry
-├── config/           Marca, rutas y escenario demo
-├── features/auth/    Servicios, persistencia y validación
-├── hooks/            Contextos y hooks de React
-├── layouts/          Estructuras de navegación
-├── middleware/       Router y guards
-├── pages/            Pantallas de la aplicación
-├── runtime/          renderer, registry, reducer, socket, schemas y contratos
-└── test/             Configuración de pruebas
+├── assistant/          chat, chips policy-safe y proposedStep
+├── components/         presentación y diez primitivas del registry
+├── config/             identidad y rutas públicas mínimas
+├── editor/             formulario, DTO HTTP, diff y creación de versiones
+├── history/            historia local de runs por operationId
+├── inspector/          inspector vivo de UISpec
+├── pages/              landing y shell del walking skeleton/golden path
+├── runtime/            contratos, schemas, renderer, reducer y socket
+├── test/               configuración de Vitest
+├── App.tsx             selección mínima entre landing, demo y editor
+└── index.css           tokens y estilos compartidos
 ```
-
-Los estilos y tokens globales viven en `src/index.css`. Las fuentes se empaquetan localmente y los videos optimizados del hero viven en `public/videos`.
 
 ## Calidad y despliegue
-
-GitHub Actions ejecuta lint, pruebas y build en cada pull request y push a `main`.
-
-También se incluye una configuración Docker con Nginx:
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-El compose levanta solo el frontend en `http://localhost:3000` y proxifica
-`/api` al backend del host en `http://localhost:8000`; el backend se ejecuta
-desde su propio repositorio.
-
-Antes de una presentación ejecuta:
 
 ```bash
 npm run lint
 npm test
 npm run build
+docker compose up --build
 ```
+
+Docker publica el frontend en `http://localhost:3000`, escucha el `PORT`
+inyectado por la plataforma y expone `/health`. Railway usa `railway.json` y el
+proxy Nginx para alcanzar el backend por su red privada.

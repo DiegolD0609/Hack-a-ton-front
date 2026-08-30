@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import BrandModal from '@/components/BrandModal'
 import HeroVideoPlaylist from '@/components/HeroVideoPlaylist'
 import PipelineAccordion from '@/components/PipelineAccordion'
@@ -28,11 +27,6 @@ export default function Landing() {
             </button>
 
             <div className="relative flex items-center gap-1.5 sm:gap-2">
-              <div className="glass-control flex items-center gap-0.5 p-1 sm:gap-1 sm:p-1.5">
-                <Link to={appConfig.routes.login} className="rounded-full px-2 py-2.5 text-xs font-medium text-white/85 hover:bg-white/10 hover:text-white sm:px-4 sm:text-sm">Login</Link>
-                <Link to={appConfig.routes.register} className="rounded-full bg-white/15 px-2 py-2.5 text-xs font-medium text-white hover:bg-white/25 sm:px-4 sm:text-sm">Sign up</Link>
-              </div>
-
               <button
                 type="button"
                 onClick={() => setIsMenuOpen((open) => !open)}
@@ -71,6 +65,7 @@ export default function Landing() {
                 inert={!isMenuOpen}
               >
                 <MenuLink to={appConfig.routes.demo} label="Abrir demo" onClick={() => setIsMenuOpen(false)} />
+                <MenuLink to={appConfig.routes.editor} label="Crear workflow" onClick={() => setIsMenuOpen(false)} />
               </div>
             </div>
           </nav>
@@ -79,7 +74,7 @@ export default function Landing() {
         <div className="relative z-10 flex h-full items-center px-5 py-24 sm:px-10 lg:px-16">
           <div className="max-w-xl text-white">
             <h1 className="text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">Logística en movimiento.</h1>
-            <Link to={appConfig.routes.demo} className="btn-primary mt-7">Explorar la demo</Link>
+            <a href={appConfig.routes.demo} className="btn-primary mt-7">Explorar la demo</a>
           </div>
         </div>
 
@@ -105,9 +100,9 @@ export default function Landing() {
             </div>
             <div>
               <p className="max-w-xl text-lg leading-8 text-white/65">
-                Un flujo demostrable que conecta registro, monitoreo y trazabilidad sin distraer al equipo con complejidad innecesaria.
+                Un flujo demostrable que conecta ingesta, monitoreo y trazabilidad sin distraer al equipo con complejidad innecesaria.
               </p>
-              <Link to={appConfig.routes.demo} className="btn-primary mt-8">Ver cómo funciona</Link>
+              <a href={appConfig.routes.demo} className="btn-primary mt-8">Ver cómo funciona</a>
             </div>
           </div>
         </section>
@@ -127,8 +122,8 @@ export default function Landing() {
 
 function MenuLink({ to, label, onClick }: { to: string; label: string; onClick: () => void }) {
   return (
-    <Link to={to} onClick={onClick} className="block rounded-md px-4 py-2.5 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white">
+    <a href={to} onClick={onClick} className="block rounded-md px-4 py-2.5 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white">
       {label}
-    </Link>
+    </a>
   )
 }

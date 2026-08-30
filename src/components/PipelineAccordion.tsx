@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { appConfig } from '@/config/app'
 
 const stages = [
@@ -167,7 +166,7 @@ export default function PipelineAccordion() {
                       </div>
                       <div className="relative z-20 mt-auto">
                         <p className="max-w-sm leading-7 text-white/65">{stage.description}</p>
-                        <Link to={appConfig.routes.demo} className="btn-primary mt-7">Ver etapa en la demo</Link>
+                        <a href={appConfig.routes.demo} className="btn-primary mt-7">Ver etapa en la demo</a>
                       </div>
                     </div>
                     <div
@@ -213,7 +212,7 @@ export default function PipelineAccordion() {
                   <span className="shrink-0 text-2xl text-white/45">{active.number}</span>
                 </div>
                 <p className="mt-4 leading-7 text-white/65">{active.description}</p>
-                <Link to={appConfig.routes.demo} className="btn-primary mt-6">Ver etapa en la demo</Link>
+                <a href={appConfig.routes.demo} className="btn-primary mt-6">Ver etapa en la demo</a>
               </div>
             </article>
           </div>

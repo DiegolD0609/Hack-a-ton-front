@@ -45,15 +45,11 @@
   --font-display: "Alfa Slab One", Georgia, serif;
 
   --color-ink: #080808;
-  --color-ocean: #457b9d;
   --color-sky: #a8dadc;
-  --color-cream: #ffffff;
   --color-signal: #c56632;
 
   --color-primary: #1d3557;
   --color-primary-hover: #142740;
-  --color-secondary: #457b9d;
-  --color-secondary-hover: #376982;
   --color-impact: #c56632;
   --color-impact-hover: #a94f27;
   --color-surface: #ffffff;
@@ -81,7 +77,6 @@
   --spacing-ui-4: 1rem;
   --spacing-ui-6: 1.5rem;
   --spacing-ui-8: 2rem;
-  --spacing-ui-12: 3rem;
 
   /* Phase 0 runtime UI: hierarchy */
   --text-ui-display: 2rem;
@@ -100,7 +95,6 @@
   --radius-control: 0.75rem;
   --radius-card: 1.5rem;
   --shadow-card: 0 18px 50px -28px rgb(29 53 87 / 0.42);
-  --ease-ui: 200ms;
 }
 
 :root {
@@ -190,10 +184,6 @@
     @apply border-emphasis-critical-border bg-emphasis-critical-bg text-emphasis-critical-fg;
   }
 
-  .btn {
-    @apply inline-flex items-center justify-center rounded-control px-5 py-3 text-sm font-semibold transition duration-200;
-  }
-
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-control bg-impact px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-impact-hover;
   }
@@ -206,12 +196,12 @@
     @apply inline-flex items-center justify-center rounded-control px-3 py-3 text-sm font-semibold text-content-muted transition duration-200 hover:bg-sky/30 hover:text-content;
   }
 
-  .form-label {
-    @apply block text-sm font-semibold text-content;
+  .field-label {
+    @apply mb-2 block text-sm font-semibold text-content;
   }
 
-  .form-input {
-    @apply mt-1 block w-full rounded-control border border-stroke bg-white px-3 py-2.5 text-sm text-content placeholder:text-content-muted/60 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10;
+  .field-control {
+    @apply w-full rounded-control border border-stroke bg-surface px-4 py-3 text-sm text-content transition duration-200 placeholder:text-content-muted/70 hover:border-content-muted focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-tinted disabled:opacity-70;
   }
 
   .eyebrow {
@@ -235,6 +225,10 @@
     animation: pipeline-reveal 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  .runtime-payload {
+    animation: runtime-payload-in 200ms var(--ease-out-expo) both;
+  }
+
   .pipeline-fade {
     opacity: 0;
     transition: opacity 420ms var(--ease-out-expo);
@@ -250,56 +244,6 @@
 
   .pipeline-grid {
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .auth-page {
-    @apply flex min-h-screen flex-col bg-surface lg:flex-row;
-  }
-
-  .auth-image-overlay {
-    @apply absolute inset-0 bg-ink/50;
-  }
-
-  .auth-brand,
-  .auth-quote,
-  .auth-heading {
-    @apply font-display;
-  }
-
-  .auth-heading {
-    @apply mb-2 text-[28px] leading-tight text-content sm:text-[32px];
-  }
-
-  .auth-label {
-    @apply mb-1.5 ml-1 block text-xs font-medium text-content-muted;
-  }
-
-  .auth-input {
-    @apply w-full rounded-control border border-stroke bg-white px-4 py-3.5 text-[15px] text-content outline-none transition-all placeholder:text-content-muted/50 focus:border-primary focus:ring-2 focus:ring-primary/15;
-  }
-
-  .auth-icon-button {
-    @apply absolute right-4 top-1/2 -translate-y-1/2 text-content-muted/60 transition-colors hover:text-primary;
-  }
-
-  .auth-toggle {
-    @apply relative h-6 w-12 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30;
-  }
-
-  .auth-submit {
-    @apply mb-5 w-full rounded-control bg-impact py-4 text-[15px] font-bold text-white shadow-md shadow-impact/20 transition-all duration-200 hover:bg-impact-hover active:scale-[0.99];
-  }
-
-  .auth-provider-button {
-    @apply mb-4 flex w-full items-center justify-center gap-3 rounded-control border border-stroke py-3.5 text-[14px] font-medium text-content transition-all hover:border-secondary hover:bg-surface-tinted;
-  }
-
-  .auth-link {
-    @apply font-semibold text-primary transition-colors hover:text-primary-hover;
-  }
-
-  .auth-divider {
-    @apply h-px flex-1 bg-stroke;
   }
 
   .brand-modal-root {
@@ -393,6 +337,37 @@
   }
 }
 
+@keyframes runtime-payload-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes route-marker-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(1.35);
+  }
+}
+
+.route-marker-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: route-marker-pulse 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -402,7 +377,15 @@
     transition-duration: 0.01ms;
   }
 
+  .route-marker-pulse {
+    animation: none;
+  }
+
   .pipeline-reveal {
+    animation: none;
+  }
+
+  .runtime-payload {
     animation: none;
   }
 

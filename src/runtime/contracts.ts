@@ -1,5 +1,5 @@
 /**
- * Frozen v1 wire contracts.
+ * Frozen v1 wire contracts plus the approved v1.1 frontend additions.
  *
  * Pydantic in Hack-a-ton-end/app/schemas/contracts.py is the executable
  * authority. Keep this reviewed mirror, the Phase 0 docs, and backend tests in
@@ -126,6 +126,8 @@ export interface RunProjection {
   recentEvents: RunEvent[]
   pendingDecision?: DecisionRequest | null
   availableActions: ActionDefinition[]
+  /** Shared by successive runs of the same operation in the v1.1 demo contract. */
+  operationId?: string | null
 }
 
 export interface PageProps {
@@ -232,23 +234,21 @@ export interface MapWaypoint {
 }
 
 export interface MapMarker {
-  label?: string | null
   lat: number
   lon: number
+  label: string
 }
 
 export interface MapSegment {
-  fromId: string
-  toId: string
+  from: string
+  to: string
   status: 'planned' | 'active' | 'diverted'
 }
 
-/** Addendum v1.1 (node #10): generic geographic route, domain-neutral. */
 export interface MapProps {
-  title?: string | null
   waypoints: MapWaypoint[]
-  segments: MapSegment[]
   marker?: MapMarker | null
+  segments: MapSegment[]
   emphasis: Emphasis
 }
 

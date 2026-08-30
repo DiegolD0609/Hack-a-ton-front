@@ -305,6 +305,7 @@ interface RuntimeHarnessProps {
   socketFactory: (url: string) => RuntimeSocket
   snapshotFetcher?: SnapshotFetcher
   pollingEnabled?: boolean
+  pollingIntervalMs?: number
   reconnectDelayMs?: number
 }
 
@@ -314,6 +315,7 @@ function RuntimeHarness({
   socketFactory,
   snapshotFetcher = snapshotFixtureFetcher,
   pollingEnabled = false,
+  pollingIntervalMs = 2_000,
   reconnectDelayMs = 1_000,
 }: RuntimeHarnessProps) {
   const runtime = useRunSocket({
@@ -323,6 +325,7 @@ function RuntimeHarness({
     socketFactory,
     snapshotFetcher,
     pollingEnabled,
+    pollingIntervalMs,
     reconnectDelayMs,
   })
 
@@ -448,6 +451,61 @@ describe('runtime renderer', () => {
     expect(screen.getByRole('table')).toBeInTheDocument()
     expect(screen.getByText('Días recuperados')).toBeInTheDocument()
     expect(screen.getByText('Mejoró')).toBeInTheDocument()
+  })
+
+  it('validates and renders the v1.1 offline map node', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') {
+      throw new Error('fixture must contain a section')
+    }
+    section.children.unshift({
+      id: 'ui_operation_map',
+      type: 'map',
+      props: {
+        waypoints: [
+          { id: 'origin', label: 'Origen', lat: 10.2, lon: 107.1, kind: 'origin' },
+          { id: 'stop', label: 'Escala', lat: 35.1, lon: 129.0, kind: 'stop' },
+          { id: 'destination', label: 'Destino', lat: 19.1, lon: -104.3, kind: 'destination' },
+        ],
+        marker: { lat: 18, lon: 135, label: 'Posición actual' },
+        segments: [
+          { from: 'origin', to: 'stop', status: 'active' },
+          { from: 'stop', to: 'destination', status: 'diverted' },
+        ],
+        emphasis: 'warning',
+      },
+    })
+
+    const result = validateUISpec(uiSpec)
+    expect(result.ok).toBe(true)
+    render(<Renderer uiSpec={uiSpec} />)
+
+    expect(screen.getByRole('img', { name: /Mapa de ruta/ })).toBeInTheDocument()
+    expect(screen.getByText('Origen → Destino')).toBeInTheDocument()
+    expect(screen.getByText('Posición: Posición actual')).toBeInTheDocument()
+  })
+
+  it('rejects map segments that reference unknown waypoints', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') throw new Error('fixture must contain a section')
+    section.children.unshift({
+      id: 'ui_invalid_map',
+      type: 'map',
+      props: {
+        waypoints: [
+          { id: 'origin', label: 'Origen', lat: 0, lon: 0, kind: 'origin' },
+          { id: 'destination', label: 'Destino', lat: 1, lon: 1, kind: 'destination' },
+        ],
+        segments: [{ from: 'origin', to: 'missing', status: 'planned' }],
+        emphasis: 'normal',
+      },
+    })
+
+    const result = validateUISpec(uiSpec)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors.join(' ')).toMatch(/unknown waypoint/i)
   })
 
   it('shows generatedBy, reason, stateVersion, and live JSON in the inspector', async () => {
@@ -733,6 +791,57 @@ describe('run WebSocket loop', () => {
     expect(screen.getByTestId('ui-spec-reason')).toHaveTextContent(
       'La jerarquía LLM concentra la decisión pendiente.',
     )
+  })
+
+  it('closes the runtime, reopens it from snapshot, and continues with a live action', async () => {
+    const user = userEvent.setup()
+    const sockets = [new FakeSocket(), new FakeSocket()]
+    const socketFactory = vi.fn(() => sockets[socketFactory.mock.calls.length - 1])
+    const snapshotFetcher = vi.fn(async () => uiUpdatedEnvelope())
+
+    const firstTab = render(
+      <RuntimeHarness socketFactory={socketFactory} snapshotFetcher={snapshotFetcher} />,
+    )
+    act(() => sockets[0].open())
+    expect(await screen.findByText('9 días')).toBeInTheDocument()
+
+    firstTab.unmount()
+    expect(sockets[0].readyState).toBe(3)
+
+    render(<RuntimeHarness socketFactory={socketFactory} snapshotFetcher={snapshotFetcher} />)
+    act(() => sockets[1].open())
+
+    await waitFor(() => expect(snapshotFetcher).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('runtime-transport')).toHaveTextContent('websocket')
+    await user.click(screen.getByRole('button', { name: 'Aprobar ruta' }))
+    await waitFor(() => expect(sockets[1].sent).toHaveLength(1))
+  })
+
+  it('falls back to polling after a live socket closes and applies the latest snapshot', async () => {
+    const socket = new FakeSocket()
+    const snapshotFetcher = vi
+      .fn<SnapshotFetcher>()
+      .mockResolvedValueOnce(uiUpdatedEnvelope())
+      .mockResolvedValue(llmUpgradeEnvelope())
+
+    render(
+      <RuntimeHarness
+        socketFactory={() => socket}
+        snapshotFetcher={snapshotFetcher}
+        pollingEnabled
+        pollingIntervalMs={10}
+        reconnectDelayMs={10_000}
+      />,
+    )
+    act(() => socket.open())
+    await waitFor(() =>
+      expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('deterministic'),
+    )
+
+    act(() => socket.closeFromServer())
+
+    await waitFor(() => expect(screen.getByTestId('runtime-transport')).toHaveTextContent('polling'))
+    await waitFor(() => expect(screen.getByTestId('ui-spec-generated-by')).toHaveTextContent('llm'))
   })
 
   it('activates polling by flag when WebSocket creation fails', async () => {
