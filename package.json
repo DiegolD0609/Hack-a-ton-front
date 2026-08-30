@@ -17,6 +17,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "maplibre-gl": "^6.6.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3"

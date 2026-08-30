@@ -13,7 +13,7 @@ function projection(runId: `run_${string}`, stateVersion: number): RunProjection
     status: stateVersion > 1 ? 'completed' : 'running',
     currentStep: null,
     operation: {},
-    operationId: 'operation-shared',
+    operationId: 'op_shared',
     recentEvents: [],
     pendingDecision: null,
     availableActions: [],

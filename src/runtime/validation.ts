@@ -3,7 +3,6 @@ import addFormats from 'ajv-formats'
 import type { ServerEnvelope, UISpec, UINode } from '@/runtime/contracts'
 import serverEnvelopeSchema from '@/runtime/generated/server-envelope.schema.json'
 import uiSpecSchema from '@/runtime/generated/ui-spec.schema.json'
-import { withFrontendV11Extensions } from '@/runtime/schemaExtensions'
 
 export type RegisteredComponentType =
   | 'page'
@@ -28,10 +27,8 @@ const ajv = new Ajv({
 
 addFormats(ajv)
 
-const extendedUISpecSchema = withFrontendV11Extensions(uiSpecSchema)
-const extendedServerEnvelopeSchema = withFrontendV11Extensions(serverEnvelopeSchema)
-const validateUISpecSchema = ajv.compile(extendedUISpecSchema)
-const validateServerEnvelopeSchema = ajv.compile(extendedServerEnvelopeSchema)
+const validateUISpecSchema = ajv.compile(uiSpecSchema)
+const validateServerEnvelopeSchema = ajv.compile(serverEnvelopeSchema)
 
 const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   page: 'PageProps',
@@ -50,7 +47,7 @@ const componentPropsValidators = Object.fromEntries(
   Object.entries(propsDefinitionByType).map(([type, definition]) => [
     type,
     ajv.compile({
-      $defs: extendedUISpecSchema.$defs,
+      $defs: uiSpecSchema.$defs,
       $ref: `#/$defs/${definition}`,
     }),
   ]),
@@ -162,8 +159,11 @@ function uiSpecInvariantErrors(uiSpec: UISpec): string[] {
         errors.push(`/layout/${node.id}: map waypoint ids must be unique`)
       }
       for (const segment of node.props.segments) {
-        if (!waypointSet.has(segment.from) || !waypointSet.has(segment.to)) {
+        if (!waypointSet.has(segment.fromId) || !waypointSet.has(segment.toId)) {
           errors.push(`/layout/${node.id}: map segment references an unknown waypoint`)
+        }
+        if (segment.fromId === segment.toId) {
+          errors.push(`/layout/${node.id}: map segment endpoints must be different`)
         }
       }
     }

@@ -84,7 +84,10 @@ export function rememberRunProjection(
     currentStepTitle: projection.currentStep?.title ?? null,
     recordedAt: existing?.recordedAt ?? new Date().toISOString(),
   }
-  const next = [...currentEntries.filter((item) => item.runId !== projection.runId), entry]
+  const nextEntries = existing
+    ? currentEntries.map((item) => (item.runId === projection.runId ? entry : item))
+    : [...currentEntries, entry]
+  const next = nextEntries
     .sort((left, right) => left.recordedAt.localeCompare(right.recordedAt))
     .slice(-MAX_ENTRIES)
   saveRunHistory(next)

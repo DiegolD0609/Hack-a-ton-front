@@ -1,11 +1,15 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import type { DecisionActionRequest } from '@/components/ui-kit'
 import { createRun, createWorkflowVersion } from '@/editor/api'
-import type { RunId, RunProjection } from '@/runtime/contracts'
+import type {
+  AssistMessage,
+  AssistResponse,
+  RunId,
+  RunProjection,
+} from '@/runtime/contracts'
 import { requestAssistance } from './api'
-import type { AssistHistoryMessage, AssistResponse } from './types'
 
-interface ChatMessage extends AssistHistoryMessage {
+interface ChatMessage extends AssistMessage {
   id: string
 }
 

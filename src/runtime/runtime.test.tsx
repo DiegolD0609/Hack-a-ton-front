@@ -453,7 +453,7 @@ describe('runtime renderer', () => {
     expect(screen.getByText('Mejoró')).toBeInTheDocument()
   })
 
-  it('validates and renders the v1.1 offline map node', () => {
+  it('validates the backend map contract and renders its local fallback without WebGL', () => {
     const uiSpec = uiUpdatedEnvelope().payload.uiSpec
     const section = uiSpec.layout.children[0]
     if (section.type !== 'section') {
@@ -463,6 +463,7 @@ describe('runtime renderer', () => {
       id: 'ui_operation_map',
       type: 'map',
       props: {
+        title: 'Ruta operativa',
         waypoints: [
           { id: 'origin', label: 'Origen', lat: 10.2, lon: 107.1, kind: 'origin' },
           { id: 'stop', label: 'Escala', lat: 35.1, lon: 129.0, kind: 'stop' },
@@ -470,8 +471,8 @@ describe('runtime renderer', () => {
         ],
         marker: { lat: 18, lon: 135, label: 'Posición actual' },
         segments: [
-          { from: 'origin', to: 'stop', status: 'active' },
-          { from: 'stop', to: 'destination', status: 'diverted' },
+          { fromId: 'origin', toId: 'stop', status: 'active' },
+          { fromId: 'stop', toId: 'destination', status: 'diverted' },
         ],
         emphasis: 'warning',
       },
@@ -498,7 +499,7 @@ describe('runtime renderer', () => {
           { id: 'origin', label: 'Origen', lat: 0, lon: 0, kind: 'origin' },
           { id: 'destination', label: 'Destino', lat: 1, lon: 1, kind: 'destination' },
         ],
-        segments: [{ from: 'origin', to: 'missing', status: 'planned' }],
+        segments: [{ fromId: 'origin', toId: 'missing', status: 'planned' }],
         emphasis: 'normal',
       },
     })

@@ -14,7 +14,7 @@ const projection: RunProjection = {
   status: 'paused',
   currentStep: null,
   operation: {},
-  operationId: 'operation-demo',
+  operationId: 'op_demo',
   recentEvents: [],
   pendingDecision: {
     decisionId: 'dec_delay_choice',
@@ -51,6 +51,8 @@ describe('AssistantPanel', () => {
     const onAction = vi.fn(() => true)
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
+        schemaVersion: '1',
+        runId: projection.runId,
         reply: 'La acción de menor riesgo es notificar.',
         recommendedActions: [
           { actionId: 'act_notify_client', rationale: 'Mantiene informado al cliente.' },
@@ -76,6 +78,7 @@ describe('AssistantPanel', () => {
     expect(await screen.findByText('La acción de menor riesgo es notificar.')).toBeInTheDocument()
     expect(screen.queryByText('act_untrusted_action')).not.toBeInTheDocument()
     const request = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
+    expect(request.schemaVersion).toBe('1')
     expect(request.message).toBe('¿Qué recomiendas?')
 
     await user.click(screen.getByRole('button', { name: 'Notificar al cliente' }))
@@ -92,6 +95,8 @@ describe('AssistantPanel', () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(
         jsonResponse({
+          schemaVersion: '1',
+          runId: projection.runId,
           reply: 'Propongo una validación genérica.',
           recommendedActions: [],
           proposedStep: {
@@ -140,5 +145,36 @@ describe('AssistantPanel', () => {
     await user.click(await screen.findByRole('button', { name: 'Crear v(n+1) y correr' }))
 
     await waitFor(() => expect(onRunCreated).toHaveBeenCalledWith('run_assistant_trial'))
+  })
+
+  it('rejects an assistant response that belongs to a different run', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        schemaVersion: '1',
+        runId: 'run_other_context',
+        reply: 'Respuesta fuera de contexto.',
+        recommendedActions: [],
+        proposedStep: null,
+      }),
+    )
+
+    render(
+      <AssistantPanel
+        apiUrl="http://127.0.0.1:8000"
+        runId={projection.runId}
+        projection={projection}
+        editorUrl="/editor"
+        onAction={vi.fn(() => true)}
+        onRunCreated={vi.fn()}
+      />,
+    )
+    await user.type(screen.getByLabelText('Mensaje para Ari'), 'Resume este run')
+    await user.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La respuesta de Ari no cumple AssistResponse.',
+    )
+    expect(screen.queryByText('Respuesta fuera de contexto.')).not.toBeInTheDocument()
   })
 })

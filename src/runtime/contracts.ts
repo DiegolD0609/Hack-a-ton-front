@@ -37,6 +37,7 @@ export const SERVER_MESSAGE_TYPES = [
 ] as const
 
 export const ID_PATTERNS = {
+  operation: /^op_[a-z0-9][a-z0-9_-]{0,127}$/,
   workflow: /^wf_[a-z0-9][a-z0-9_-]{0,127}$/,
   step: /^step_[a-z0-9][a-z0-9_-]{0,127}$/,
   run: /^run_[a-z0-9][a-z0-9_-]{0,127}$/,
@@ -51,6 +52,7 @@ export type SchemaVersion = typeof SCHEMA_VERSION
 export type ComponentType = (typeof COMPONENT_TYPES)[number]
 export type ServerMessageType = (typeof SERVER_MESSAGE_TYPES)[number]
 
+export type OperationId = `op_${string}`
 export type WorkflowId = `wf_${string}`
 export type StepId = `step_${string}`
 export type RunId = `run_${string}`
@@ -127,7 +129,7 @@ export interface RunProjection {
   pendingDecision?: DecisionRequest | null
   availableActions: ActionDefinition[]
   /** Shared by successive runs of the same operation in the v1.1 demo contract. */
-  operationId?: string | null
+  operationId?: OperationId | null
 }
 
 export interface PageProps {
@@ -236,16 +238,17 @@ export interface MapWaypoint {
 export interface MapMarker {
   lat: number
   lon: number
-  label: string
+  label?: string | null
 }
 
 export interface MapSegment {
-  from: string
-  to: string
+  fromId: string
+  toId: string
   status: 'planned' | 'active' | 'diverted'
 }
 
 export interface MapProps {
+  title?: string | null
   waypoints: MapWaypoint[]
   marker?: MapMarker | null
   segments: MapSegment[]

@@ -1,22 +1,19 @@
-# Backend handoff · frontend roadmap v2
+# Contrato backend observado · frontend roadmap v2
 
-Este documento fija la interfaz que el frontend ya consume para los momentos
-M1–M4. No implica cambios en el repositorio backend: es el contrato de
-integración y el orden sugerido para que Lane A/C/D lo implemente sin bloquear
-a Lane B.
+Este documento registra la interfaz que el frontend consume para M1–M4. Se
+contrastó de forma read-only con el backend en `dev`; esta entrega no modifica
+ese repositorio.
 
-## 1. Orden de implementación
+## 1. Estado observado en backend `dev`
 
-1. Añadir `map` a Pydantic como décimo nodo de `UISpec`, regenerar ambos JSON
-   Schema y comprobar que el frontend ya no necesita la extensión temporal de
-   `src/runtime/schemaExtensions.ts`.
-2. Añadir `operationId` a `RunProjection` y crear los tres runs de demo con el
-   mismo valor.
-3. Implementar `POST /demo/moment/{n}` para `n = 1..3`.
-4. Registrar `act_notify_client` en policy/outcomes y emitirla en M3 junto con
-   esperar/buscar alternativa.
-5. Implementar `POST /runs/{id}/assist` con structured output estricto.
-6. Validar M1→M3, el chip de Ari y el trial M4 desde `/demo`, sin terminal.
+1. `map` ya forma parte de Pydantic y de ambos JSON Schema generados.
+2. `RunProjection.operationId` y los tres momentos de demo ya están expuestos.
+3. `POST /demo/moment/{n}` para `n = 1..3` ya existe.
+4. `POST /runs/{id}/assist` y su contrato versionado ya existen.
+5. El frontend retiró `schemaExtensions.ts`, espejó los nombres definitivos y
+   conserva validación defensiva en el borde HTTP/WS.
+6. El smoke conjunto M1→M4 sigue siendo una verificación de integración, no un
+   cambio pendiente de frontend.
 
 ## 2. Adenda `UISpec` v1.1
 
@@ -28,6 +25,7 @@ envelope WebSocket no cambia.
   "id": "ui_route_map",
   "type": "map",
   "props": {
+    "title": "Ruta operativa",
     "waypoints": [
       { "id": "origin", "label": "Cái Mép", "lat": 10.52, "lon": 107.0, "kind": "origin" },
       { "id": "stop", "label": "Busan", "lat": 35.1, "lon": 129.04, "kind": "stop" },
@@ -35,8 +33,8 @@ envelope WebSocket no cambia.
     ],
     "marker": { "lat": 18.0, "lon": 135.0, "label": "Posición actual" },
     "segments": [
-      { "from": "origin", "to": "stop", "status": "active" },
-      { "from": "stop", "to": "destination", "status": "diverted" }
+      { "fromId": "origin", "toId": "stop", "status": "active" },
+      { "fromId": "stop", "toId": "destination", "status": "diverted" }
     ],
     "emphasis": "warning"
   }
@@ -45,11 +43,12 @@ envelope WebSocket no cambia.
 
 Reglas que el front ya valida:
 
-- `waypoints`: 2–12 elementos, IDs únicos, latitud `[-90, 90]`, longitud
+- `waypoints`: al menos 2 elementos, IDs únicos, latitud `[-90, 90]`, longitud
   `[-180, 180]` y `kind = origin | stop | destination`;
-- `segments`: 1–16 elementos; `from` y `to` deben apuntar a waypoints reales;
+- `segments`: al menos un elemento; `fromId` y `toId` deben apuntar a waypoints
+  reales y ser distintos;
 - `status = planned | active | diverted`;
-- `marker` es opcional/null;
+- `title` y `marker` son opcionales/null; `marker.label` también puede omitirse;
 - `emphasis = normal | warning | critical`;
 - `map` no acepta `children`.
 
@@ -66,7 +65,7 @@ Cada run nuevo debe incluir el mismo `operationId` y un `runId` distinto:
 ```json
 {
   "runId": "run_...",
-  "operationId": "operation_muebles_del_sur_bk_4471",
+  "operationId": "op_muebles_del_sur_bk_4471",
   "workflowId": "wf_...",
   "workflowVersion": 1,
   "stateVersion": 4,
@@ -114,6 +113,7 @@ Request:
 
 ```json
 {
+  "schemaVersion": "1",
   "message": "¿Qué opción recomiendas?",
   "history": [
     { "role": "assistant", "content": "..." },
@@ -126,6 +126,8 @@ Response:
 
 ```json
 {
+  "schemaVersion": "1",
+  "runId": "run_...",
   "reply": "Recomiendo notificar porque...",
   "recommendedActions": [
     { "actionId": "act_notify_client", "rationale": "Riesgo bajo y decisión reversible." }
@@ -142,7 +144,8 @@ Response:
 ```
 
 `proposedStep` puede ser `null`. `recommendedActions` siempre existe aunque esté
-vacío. El backend debe construir su enum/lista permitida desde
+vacío. El frontend exige que `runId` coincida con el run consultado y que
+`schemaVersion` sea `"1"`. El backend construye su enum/lista permitida desde
 `RunProjection.availableActions`; no basta con pedírselo al modelo en texto.
 
 El front vuelve a filtrar recomendaciones contra la proyección visible. El chip
@@ -176,8 +179,8 @@ Errores esperados:
 
 ## 6. Checklist antes del merge conjunto
 
-- Pydantic y TypeScript contienen el mismo nodo `map`.
-- JSON Schema se regenera desde backend; no se edita a mano.
+- Pydantic, TypeScript y JSON Schema contienen el mismo nodo `map`.
+- JSON Schema se consume tal como fue regenerado desde backend; no se edita a mano.
 - `grep -i "booking\|vessel\|bol\|muebles\|ari" app/synthesis/ src/runtime/`
   queda vacío.
 - El asistente no puede recomendar un actionId ajeno a policy.

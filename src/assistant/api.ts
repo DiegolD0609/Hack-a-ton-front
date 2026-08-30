@@ -1,6 +1,11 @@
-import { ID_PATTERNS, type RunId } from '@/runtime/contracts'
+import {
+  ID_PATTERNS,
+  SCHEMA_VERSION,
+  type AssistRequest,
+  type AssistResponse,
+  type RunId,
+} from '@/runtime/contracts'
 import type { WorkflowStepDefinition } from '@/editor/types'
-import type { AssistRequest, AssistResponse } from './types'
 
 function apiEndpoint(apiUrl: string, path: string): string {
   const url = new URL(apiUrl, window.location.origin)
@@ -24,12 +29,14 @@ function isProposedStep(value: unknown): value is WorkflowStepDefinition {
   )
 }
 
-function assertAssistResponse(value: unknown): AssistResponse {
+function assertAssistResponse(value: unknown, runId: RunId): AssistResponse {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('Ari devolvió una respuesta ilegible.')
   }
   const response = value as Partial<AssistResponse>
   if (
+    response.schemaVersion !== SCHEMA_VERSION ||
+    response.runId !== runId ||
     typeof response.reply !== 'string' ||
     !response.reply.trim() ||
     !Array.isArray(response.recommendedActions) ||
@@ -52,12 +59,12 @@ function assertAssistResponse(value: unknown): AssistResponse {
 export async function requestAssistance(
   apiUrl: string,
   runId: RunId,
-  request: AssistRequest,
+  request: Omit<AssistRequest, 'schemaVersion'>,
 ): Promise<AssistResponse> {
   const response = await fetch(apiEndpoint(apiUrl, `/runs/${encodeURIComponent(runId)}/assist`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    body: JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...request }),
   })
   if (!response.ok) {
     if (response.status === 404 || response.status === 503) {
@@ -65,5 +72,5 @@ export async function requestAssistance(
     }
     throw new Error(`El asistente respondió ${response.status}.`)
   }
-  return assertAssistResponse(await response.json())
+  return assertAssistResponse(await response.json(), runId)
 }

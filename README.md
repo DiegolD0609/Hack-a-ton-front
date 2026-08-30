@@ -9,7 +9,7 @@ humana vuelve al agente como un `ActionEvent` tipado.
 El repositorio contiene únicamente la superficie definida por el roadmap:
 
 - renderer recursivo y fallback por nodo;
-- registry v1.1 de diez componentes, incluido un mapa SVG offline;
+- registry v1.1 de diez componentes, incluido un mapa interactivo MapLibre GL;
 - reducer, WebSocket, reconexión por snapshot y fallback de polling;
 - inspector de `UISpec` con `generatedBy`, `reason` y `stateVersion`;
 - editor de workflow que genera pasos, muestra el diff y ejecuta `v(n+1)`;
@@ -44,6 +44,7 @@ VITE_API_URL=/api
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 VITE_RUNTIME_POLLING=true
 VITE_ASSISTANT_ENABLED=true
+VITE_MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 BACKEND_URL=http://localhost:8000
 ```
 
@@ -55,18 +56,22 @@ producción.
 ## Runtime y contratos
 
 `src/runtime/contracts.ts` refleja manualmente los contratos Pydantic del
-backend y conserva `schemaVersion = "1"`. Los JSON Schema generados viven en
-`src/runtime/generated/` y AJV valida cada envelope antes de pasarlo al reducer.
-Los JSON Schema no se editan de forma unilateral. Por la restricción explícita
-de no tocar backend en esta entrega, la adenda TypeScript v1.1 queda adelantada
-y documentada para que el equipo backend la espeje y regenere los artefactos.
+backend y conserva `schemaVersion = "1"`. Los JSON Schema regenerados desde el
+backend viven en `src/runtime/generated/` y AJV valida cada envelope antes de
+pasarlo al reducer. El frontend compila esos artefactos directamente, sin una
+extensión local ni edición manual de los schemas.
 
 El registry admite `page`, `section`, `metric`, `alert`, `timeline`, `keyValue`,
 `compare`, `decisionPanel`, `step` y `map`. Un tipo desconocido o props inválidas
-se aíslan con `GenericStepCard`; nunca provocan una pantalla blanca. `map` usa
-SVG inline y no requiere tiles ni red externa. Hasta que backend regenere los
-schemas, `schemaExtensions.ts` amplía en memoria los artefactos v1 sin editarlos
-a mano.
+se aíslan con `GenericStepCard`; nunca provocan una pantalla blanca. `map`
+inicializa MapLibre GL con tiles raster de OpenStreetMap, conserva atribución
+visible, permite zoom/pan y representa el marker actual. Sin WebGL, sin red o
+si falla la carga inicial, cambia automáticamente a un esquema SVG local.
+
+`VITE_MAP_TILE_URL` evita fijar el proveedor en el código. El servidor público
+de OSM se usa solo para la demo interactiva normal: no existe precarga ni
+descarga offline de tiles. Para tráfico sostenido debe configurarse un proveedor
+OSM apropiado manteniendo la atribución correspondiente.
 
 Los endpoints y payloads que backend debe implementar para M1–M4 están fijados
 en [`docs/BACKEND_INTEGRATION_V2.md`](docs/BACKEND_INTEGRATION_V2.md).
@@ -128,7 +133,7 @@ y abre su run por los mismos endpoints del editor manual.
 ```text
 src/
 ├── assistant/          chat, chips policy-safe y proposedStep
-├── components/         presentación y diez primitivas del registry
+├── components/         presentación y diez primitivas, incluido MapLibre
 ├── config/             identidad y rutas públicas mínimas
 ├── editor/             formulario, DTO HTTP, diff y creación de versiones
 ├── history/            historia local de runs por operationId
