@@ -150,4 +150,64 @@ describe('contract-free Studio renderer', () => {
     const button = screen.getByRole('button', { name: 'Ir' })
     expect(button.style.backgroundColor).toBe('')
   })
+
+  it('renders a real interactive route map for a map node, not a plain waypoint list', () => {
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Ruta' },
+            children: [
+              {
+                id: 'ui_map',
+                type: 'map',
+                props: {
+                  title: 'Ruta Indonesia - México',
+                  waypoints: [
+                    { id: 'wp_1', label: 'Indonesia', lat: -6.2, lon: 106.8166, kind: 'origin' },
+                    { id: 'wp_2', label: 'México', lat: 19.4326, lon: -99.1332, kind: 'destination' },
+                  ],
+                  segments: [{ fromId: 'wp_1', toId: 'wp_2', status: 'active' }],
+                  marker: null,
+                  emphasis: 'normal',
+                },
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    // jsdom has no WebGL, so RouteMap falls back to its accessible SVG route.
+    expect(screen.getByRole('img', { name: /Mapa de ruta/ })).toBeInTheDocument()
+    expect(screen.getByText('Indonesia')).toBeInTheDocument()
+    expect(screen.getByText('México')).toBeInTheDocument()
+  })
+
+  it('shows a warning instead of a broken map when fewer than two waypoints are given', () => {
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Ruta' },
+            children: [
+              {
+                id: 'ui_map',
+                type: 'map',
+                props: { waypoints: [{ id: 'wp_1', label: 'Indonesia', lat: -6.2, lon: 106.8, kind: 'origin' }], segments: [] },
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Mapa incompleto')).toBeInTheDocument()
+  })
 })

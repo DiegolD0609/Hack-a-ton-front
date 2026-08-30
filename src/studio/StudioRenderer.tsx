@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { RouteMap } from '@/components/ui-kit'
+import type { Emphasis, MapProps, MapSegment, MapWaypoint } from '@/runtime/contracts'
 
 type LooseObject = Record<string, unknown>
 
@@ -453,25 +455,80 @@ function StudioTags({ props }: { props: LooseObject }) {
   )
 }
 
+const WAYPOINT_KINDS = new Set(['origin', 'stop', 'destination'])
+const SEGMENT_STATUSES = new Set(['planned', 'active', 'diverted'])
+const EMPHASIS_VALUES = new Set(['normal', 'warning', 'critical'])
+
+function toWaypoint(value: unknown, index: number): MapWaypoint | null {
+  const entry = objectValue(value)
+  if (!entry) return null
+  const lat = numberValue(entry.lat)
+  const lon = numberValue(entry.lon)
+  if (lat === null || lon === null) return null
+  const kind = stringValue(entry.kind)
+  return {
+    id: stringValue(entry.id) ?? `wp_${index}`,
+    label: stringValue(entry.label) ?? `Punto ${index + 1}`,
+    lat,
+    lon,
+    kind: (kind && WAYPOINT_KINDS.has(kind) ? kind : 'stop') as MapWaypoint['kind'],
+  }
+}
+
+function toSegment(value: unknown): MapSegment | null {
+  const entry = objectValue(value)
+  if (!entry) return null
+  const fromId = stringValue(entry.fromId)
+  const toId = stringValue(entry.toId)
+  if (!fromId || !toId) return null
+  const status = stringValue(entry.status)
+  return {
+    fromId,
+    toId,
+    status: (status && SEGMENT_STATUSES.has(status) ? status : 'planned') as MapSegment['status'],
+  }
+}
+
+function toMapProps(props: LooseObject): MapProps | null {
+  const waypoints = (Array.isArray(props.waypoints) ? props.waypoints : [])
+    .map(toWaypoint)
+    .filter((waypoint): waypoint is MapWaypoint => waypoint !== null)
+  if (waypoints.length < 2) return null
+
+  const segments = (Array.isArray(props.segments) ? props.segments : [])
+    .map(toSegment)
+    .filter((segment): segment is MapSegment => segment !== null)
+
+  const markerEntry = objectValue(props.marker)
+  const markerLat = markerEntry ? numberValue(markerEntry.lat) : null
+  const markerLon = markerEntry ? numberValue(markerEntry.lon) : null
+  const marker =
+    markerLat !== null && markerLon !== null
+      ? { lat: markerLat, lon: markerLon, label: stringValue(markerEntry?.label) }
+      : null
+
+  const emphasis = stringValue(props.emphasis)
+
+  return {
+    title: stringValue(props.title),
+    waypoints,
+    segments,
+    marker,
+    emphasis: (emphasis && EMPHASIS_VALUES.has(emphasis) ? emphasis : 'normal') as Emphasis,
+  }
+}
+
 function StudioMap({ props }: { props: LooseObject }) {
-  const waypoints = Array.isArray(props.waypoints) ? props.waypoints : []
-  return (
-    <section className="generated-card generated-route">
-      {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
-      <div>
-        {waypoints.map((waypoint, index) => {
-          const entry = objectValue(waypoint) ?? {}
-          return (
-            <article key={stringValue(entry.id) ?? index}>
-              <span>{index + 1}</span>
-              <strong>{stringValue(entry.label)}</strong>
-              <small>{displayValue(entry.lat)}, {displayValue(entry.lon)}</small>
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  )
+  const mapProps = toMapProps(props)
+  if (!mapProps) {
+    return (
+      <section className="generated-card generated-alert emphasis-warning">
+        <strong>Mapa incompleto</strong>
+        <p>Este mapa necesita al menos dos puntos con coordenadas válidas.</p>
+      </section>
+    )
+  }
+  return <RouteMap {...mapProps} />
 }
 
 function StudioNode({ node }: { node: unknown }) {
