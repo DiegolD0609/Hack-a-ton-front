@@ -5,7 +5,7 @@ import IterationTree from './IterationTree'
 describe('IterationTree', () => {
   it('shows branches and restores a selected iteration', () => {
     const onSelect = vi.fn()
-    render(
+    const { container } = render(
       <IterationTree
         selectedId={3}
         onSelect={onSelect}
@@ -20,6 +20,9 @@ describe('IterationTree', () => {
     expect(screen.getByText('Iteration tree')).toBeInTheDocument()
     expect(screen.getAllByRole('treeitem')).toHaveLength(4)
     expect(screen.getByRole('treeitem', { name: /En fila/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('treeitem', { name: /En fila/ })).toHaveAttribute('aria-level', '3')
+    expect(container.querySelectorAll('.studio-tree-link')).toHaveLength(3)
+    expect(container.querySelector('.studio-tree-canvas')).toHaveStyle({ width: '692px' })
 
     fireEvent.click(screen.getByRole('treeitem', { name: /En columna/ }))
     expect(onSelect).toHaveBeenCalledWith(2)
