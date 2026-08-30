@@ -587,6 +587,11 @@
   opacity: 0.35;
 }
 
+.studio-project-switcher > button.is-danger {
+  background: #fff0ec;
+  color: #a33a2b;
+}
+
 .studio-project-dialog {
   position: absolute;
   z-index: 60;
@@ -608,6 +613,13 @@
   font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.studio-project-dialog-title {
+  display: block;
+  color: var(--studio-ink);
+  font-size: 0.78rem;
+  font-weight: 850;
 }
 
 .studio-project-dialog input {
@@ -650,6 +662,11 @@
 
 .studio-project-dialog button[type='submit'] {
   background: var(--studio-ink);
+  color: white;
+}
+
+.studio-project-dialog .studio-project-delete-confirm {
+  background: #a33a2b;
   color: white;
 }
 
@@ -1863,6 +1880,11 @@
   box-shadow: 0 18px 35px -28px rgb(23 23 20 / 0.75);
 }
 
+.studio-output-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .studio-suggestion-mark {
   display: grid;
   width: 2.4rem;
@@ -1889,6 +1911,49 @@
   color: rgb(255 255 255 / 0.68);
   font-size: 0.72rem;
   line-height: 1.55;
+}
+
+.studio-output-reason {
+  margin-top: 0.65rem;
+}
+
+.studio-output-reason > span,
+.studio-suggestion-tip span {
+  color: rgb(255 255 255 / 0.42);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.5rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-output-reason p {
+  margin-top: 0.18rem;
+}
+
+.studio-suggestion-tip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  border: 1px solid rgb(219 255 69 / 0.28);
+  border-radius: 0.78rem;
+  background: rgb(219 255 69 / 0.08);
+  padding: 0.7rem;
+}
+
+.studio-suggestion-tip > svg {
+  margin-top: 0.15rem;
+  color: var(--studio-acid);
+}
+
+.studio-suggestion-tip span {
+  color: var(--studio-acid);
+}
+
+.studio-suggestion-tip p {
+  margin-top: 0.2rem;
+  color: rgb(255 255 255 / 0.82);
 }
 
 .studio-building-pill {

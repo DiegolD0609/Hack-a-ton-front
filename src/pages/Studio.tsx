@@ -41,6 +41,7 @@ export default function Studio() {
   const [projectsError, setProjectsError] = useState<string | null>(null)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [isRenamingProject, setIsRenamingProject] = useState(false)
+  const [isDeletingProject, setIsDeletingProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [projectNameDraft, setProjectNameDraft] = useState('')
 
@@ -183,6 +184,7 @@ export default function Studio() {
   const openProjectCreator = () => {
     setNewProjectName(`UI Project ${workspace.projects.length + 1}`)
     setIsRenamingProject(false)
+    setIsDeletingProject(false)
     setIsCreatingProject(true)
   }
 
@@ -190,7 +192,15 @@ export default function Studio() {
     if (!activeProject.isDraft) return
     setProjectNameDraft(activeProject.name)
     setIsCreatingProject(false)
+    setIsDeletingProject(false)
     setIsRenamingProject(true)
+  }
+
+  const openProjectDeleter = () => {
+    if (!activeProject.isDraft) return
+    setIsCreatingProject(false)
+    setIsRenamingProject(false)
+    setIsDeletingProject(true)
   }
 
   const renameDraftProject = (event: FormEvent<HTMLFormElement>) => {
@@ -199,6 +209,13 @@ export default function Studio() {
     if (!name || !activeProject.isDraft) return
     updateProject(activeProject.id, (project) => ({ ...project, name }))
     setIsRenamingProject(false)
+  }
+
+  const deleteDraftProject = () => {
+    if (!activeProject.isDraft) return
+    removeMissingProject(activeProject.id)
+    setProjectsError(null)
+    setIsDeletingProject(false)
   }
 
   const switchProject = (projectId: string) => {
@@ -417,6 +434,18 @@ export default function Studio() {
           >
             ✎
           </button>
+          <button
+            type="button"
+            className="is-danger"
+            aria-label="Eliminar proyecto"
+            title={activeProject.isDraft
+              ? 'Delete this unsaved draft'
+              : 'Backend endpoint required to delete saved projects'}
+            disabled={isGenerating || isLoadingProjects || !activeProject.isDraft}
+            onClick={openProjectDeleter}
+          >
+            ×
+          </button>
 
           {isCreatingProject ? (
             <form className="studio-project-dialog" role="dialog" aria-label="Nuevo proyecto" onSubmit={createProject}>
@@ -451,6 +480,21 @@ export default function Studio() {
                 <button type="submit" disabled={!projectNameDraft.trim()}>Save name</button>
               </div>
             </form>
+          ) : null}
+
+          {isDeletingProject ? (
+            <div className="studio-project-dialog" role="dialog" aria-label="Eliminar proyecto">
+              <span className="studio-project-dialog-title">Delete draft?</span>
+              <p className="studio-project-dialog-note">
+                “{activeProject.name}” and its unsent prompt will be removed from this tab.
+              </p>
+              <div>
+                <button type="button" onClick={() => setIsDeletingProject(false)}>Cancel</button>
+                <button type="button" className="studio-project-delete-confirm" onClick={deleteDraftProject}>
+                  Delete draft
+                </button>
+              </div>
+            </div>
           ) : null}
         </div>
 
@@ -533,12 +577,24 @@ export default function Studio() {
           />
 
           <div className={`studio-output-row ${!activeProject.isDraft && selectedIteration?.status === 'completed' ? 'has-feedback' : ''}`}>
-            <section className="studio-suggestion-card" aria-labelledby="backend-suggestion-title">
+            <section className="studio-suggestion-card" aria-labelledby="backend-output-title">
               <div className="studio-suggestion-mark"><StudioIcon name="spark" /></div>
-              <div>
-                <span className="studio-sidebar-label">Backend output</span>
-                <h2 id="backend-suggestion-title">Backend suggestion</h2>
-                <p>{selectedMeta.reason ?? 'The backend suggestion will appear here after an iteration.'}</p>
+              <div className="studio-output-copy">
+                <span className="studio-sidebar-label">API response</span>
+                <h2 id="backend-output-title">Backend output</h2>
+                <div className="studio-output-reason">
+                  <span>Generation reason</span>
+                  <p>{selectedMeta.reason ?? 'The generation reason will appear here after an iteration.'}</p>
+                </div>
+                {selectedMeta.suggestion ? (
+                  <aside className="studio-suggestion-tip" aria-label="UX suggestion">
+                    <StudioIcon name="message" size={16} />
+                    <div>
+                      <span>Suggestion</span>
+                      <p>{selectedMeta.suggestion}</p>
+                    </div>
+                  </aside>
+                ) : null}
               </div>
             </section>
 
