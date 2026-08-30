@@ -2004,13 +2004,20 @@
 }
 
 .generated-table {
-  overflow-x: auto;
+  max-height: 26rem;
+  overflow: auto;
 }
 
 .generated-table table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.78rem;
+}
+
+.generated-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fbfaf7;
 }
 
 .generated-table th,
