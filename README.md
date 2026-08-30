@@ -1,31 +1,29 @@
-# Kernel Panic · Agent UI Runtime
+# Kernel Panic · Studio
 
-Frontend React/Vite del runtime seguro de Kernel Panic. Recibe una `UISpec`
-declarativa, la valida y la convierte en una interfaz viva; una intervención
-humana vuelve al agente como un `ActionEvent` tipado.
+Frontend React/Vite de Kernel Panic. **La app es Studio**: un cuadro de texto
+donde describes una interfaz y el backend la genera, valida y renderiza en
+vivo — sin escribir código. `App.tsx` renderiza únicamente `<Studio />`.
 
-## Alcance
+## Studio vs. runtime heredado
 
-El repositorio contiene únicamente la superficie definida por el roadmap:
+El repositorio también contiene el frontend de un sistema anterior (runtime de
+agente con workflows, WebSocket, decisiones humanas y un editor) en
+`src/pages/Landing.tsx`, `src/pages/Demo.tsx`, `src/editor/`, `src/runtime/`,
+`src/assistant/`, `src/inspector/` y `src/history/`. Ese código sigue
+compilando, tiene sus propios tests y el backend correspondiente sigue vivo
+(`Hack-a-ton-end/README.md`, sección "Runtime de agente") — pero **no hay
+router**: no hay ninguna forma de navegar a él desde la app actual, ni
+siquiera visitando `/demo` o `/landing` en la URL (no existe manejo de rutas;
+cualquier path sirve el mismo `App.tsx`, que solo monta Studio). Trátalo como
+código dormido, no como una pantalla alcanzable.
 
-- renderer recursivo y fallback por nodo;
-- registry v1.1 de diez componentes, incluido un mapa interactivo MapLibre GL;
-- reducer, WebSocket, reconexión por snapshot y fallback de polling;
-- inspector de `UISpec` con `generatedBy`, `reason` y `stateVersion`;
-- editor de workflow que genera pasos, muestra el diff y ejecuta `v(n+1)`;
-- historia persistente de runs por operación y controles M1–M3;
-- panel de Ari con recomendaciones acotadas por policy y `proposedStep`;
-- design tokens normal, warning y critical;
-- landing de presentación con un único destino funcional: la demo;
-- shell de demo para el walking skeleton y el golden path.
+Si vas a tocar algo del producto, es Studio (`src/pages/Studio.tsx`,
+`src/studio/`, `src/components/studio/`).
 
-No incluye autenticación, dashboard logístico, preferencias ni pantallas de
-producto fijas. La landing presenta el concepto; la interfaz operativa procede
-del runtime.
+## Arranque rápido
 
-## Inicio rápido
-
-Requisitos: Node.js 22, npm 10 y el backend de Kernel Panic.
+Requisitos: Node.js 22, npm 10, y el backend de Kernel Panic corriendo (ver
+`Hack-a-ton-end/README.md`).
 
 ```bash
 npm ci
@@ -33,129 +31,117 @@ cp .env.example .env
 npm run dev
 ```
 
-Abre `http://localhost:5173/landing` para la presentación,
-`http://localhost:5173/demo` para entrar al runtime o
-`http://localhost:5173/editor` para crear una versión ejecutable.
+Abre `http://localhost:5173` — esa es la app completa, no hay otras rutas que
+visitar.
 
 ## Variables de entorno
 
 ```env
 VITE_API_URL=/api
+BACKEND_URL=http://127.0.0.1:8000
+```
+
+`VITE_API_URL=/api` es lo que casi siempre quieres: el navegador llama
+siempre a `/api/*` (same-origin, sin CORS); Vite en desarrollo y Nginx en el
+contenedor lo reenvían a `BACKEND_URL` y le quitan el prefijo `/api`. Si en
+cambio pones `VITE_API_URL` apuntando directo al host del backend (p. ej.
+`http://127.0.0.1:8000`), el navegador le pega directo — funciona solo si ese
+backend tiene el origen del frontend en su `ALLOWED_ORIGINS`, y es la causa
+más común de errores de CORS al correr todo en local.
+
+`.env.test` (sí está en git, a diferencia de `.env`) fija
+`VITE_API_URL=http://127.0.0.1:8000` para que `npm test` sea determinista sin
+importar qué tengas en tu `.env` local — algunos tests (`WorkflowEditor.test.tsx`
+del runtime heredado) esperan esa URL literal.
+
+```env
+VITE_MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
+```
+
+Tiles raster para `RouteMap.tsx` (MapLibre GL) — lo usan tanto el nodo `map`
+de Studio como el runtime heredado, porque Studio reutiliza ese mismo
+componente. El resto de variables son solo del runtime heredado (Studio no
+las usa):
+
+```env
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 VITE_RUNTIME_POLLING=true
 VITE_ASSISTANT_ENABLED=true
-VITE_MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
-BACKEND_URL=https://hack-a-ton-end-production.up.railway.app
 ```
 
-El navegador usa siempre `/api/*`; Vite en desarrollo y Nginx en el contenedor
-lo redirigen a `BACKEND_URL` y eliminan el prefijo `/api`. En Railway el
-frontend es un servicio independiente y, por defecto, Nginx lo reenvía a
-`https://hack-a-ton-end-production.up.railway.app`. Esto mantiene REST y
-WebSocket como same-origin para el navegador sin desplegar backend ni PostgreSQL
-en el servicio del frontend.
+## Cómo funciona Studio
 
-`VITE_DEMO_TOKEN` debe coincidir con `DEMO_TOKEN` del backend para el handshake
-WebSocket. Es un control de demo visible en el bundle, no un secreto de
-producción.
+1. Escribes un prompt en `/` (por ejemplo: *"crea un panel con una tabla de
+   pedidos, un buscador que la filtre, y una gráfica de barras de ventas por
+   mes"*).
+2. `src/studio/api.ts` llama `POST /studio/generate`. Sin `conversationId`
+   crea un proyecto nuevo; con él, el backend trata el prompt como una
+   edición del layout anterior (reutiliza ids, conserva lo que no cambió).
+3. El backend devuelve un layout declarativo (JSON) — nunca código. `reason`
+   explica qué interpretó; `suggestion` (opcional) es un tip de UX que no
+   pediste pero podría interesarte.
+4. `src/studio/StudioRenderer.tsx` lo pinta. Es deliberadamente
+   **contract-free**: a diferencia de `src/runtime/` (que usa AJV + un
+   registry estricto), este renderer no importa ni valida los contratos del
+   runtime heredado — cualquier campo faltante o de tipo raro cae a un
+   default razonable en vez de romper la pantalla.
 
-### Despliegue independiente en Railway
+### Qué puede generar
 
-Despliega este repositorio como un único servicio Docker. No agregues servicios
-de backend o PostgreSQL al proyecto del frontend. Configura `VITE_DEMO_TOKEN`
-como variable de build y, solo si se usa otro ambiente, configura `BACKEND_URL`
-en runtime. Sin override, el contenedor usa el backend público de producción.
+Contenedores: `page`, `section` (fila/columna, gap, alineación, color de
+fondo).
 
-## Runtime y contratos
+Contenido: `text`, `button`, `metric`, `alert`, `timeline`, `keyValue`,
+`compare`, `step`, `map` (MapLibre GL real con fallback SVG sin WebGL/red).
 
-`src/runtime/contracts.ts` refleja manualmente los contratos Pydantic del
-backend y conserva `schemaVersion = "1"`. Los JSON Schema regenerados desde el
-backend viven en `src/runtime/generated/` y AJV valida cada envelope antes de
-pasarlo al reducer. El frontend compila esos artefactos directamente, sin una
-extensión local ni edición manual de los schemas.
+Datos e interactivos: `searchBar`, `dropdown`, `chart` (barras/línea/pastel),
+`table` (hasta 250 filas, con scroll interno y encabezado fijo), `progress`,
+`tags`.
 
-El registry admite `page`, `section`, `metric`, `alert`, `timeline`, `keyValue`,
-`compare`, `decisionPanel`, `step` y `map`. Un tipo desconocido o props inválidas
-se aíslan con `GenericStepCard`; nunca provocan una pantalla blanca. `map`
-inicializa MapLibre GL con tiles raster de OpenStreetMap, conserva atribución
-visible, permite zoom/pan y representa el marker actual. Sin WebGL, sin red o
-si falla la carga inicial, cambia automáticamente a un esquema SVG local.
+- **Color:** casi cualquier elemento acepta un color hex explícito
+  (`color`/`backgroundColor`) que el modelo fija cuando se lo pides — no es
+  solo una descripción en texto, se aplica de verdad como estilo.
+- **Filtrado real:** un `searchBar`/`dropdown` puede declarar `filterTarget`
+  apuntando al id de una `table`/`tags` del mismo layout (y `dropdown`,
+  además, `filterColumn` para fijarse a una columna). El filtrado corre en el
+  navegador (`FilterContext` dentro de `StudioRenderer.tsx`) mientras
+  escribes/seleccionas — no hay llamada al backend por cada tecla.
+- **Responsive real:** el switcher desktop/tablet/mobile del canvas
+  (`StudioCanvas.tsx`) solo cambia el ancho de un `<div>` — el viewport real
+  del navegador sigue siendo de escritorio. Por eso el CSS generado usa
+  *container queries* (`container-type: inline-size` en
+  `.studio-browser-frame`), no `@media`, para reaccionar al ancho real del
+  marco de preview.
 
-`VITE_MAP_TILE_URL` evita fijar el proveedor en el código. El servidor público
-de OSM se usa solo para la demo interactiva normal: no existe precarga ni
-descarga offline de tiles. Para tráfico sostenido debe configurarse un proveedor
-OSM apropiado manteniendo la atribución correspondiente.
-
-Los endpoints y payloads que backend debe implementar para M1–M4 están fijados
-en [`docs/BACKEND_INTEGRATION_V2.md`](docs/BACKEND_INTEGRATION_V2.md).
-La matriz completa de alcance y dependencias frontend está en
-[`docs/FRONTEND_ROADMAP_V2.md`](docs/FRONTEND_ROADMAP_V2.md).
-
-La demo inicia `POST /runs`, avanza con `POST /demo/advance` y mantiene el canal:
-
-```text
-GET ws(s)://<VITE_API_URL>/ws/runs/{runId}?token=<VITE_DEMO_TOKEN>
-```
-
-Al reconectar obtiene `GET /runs/{id}/snapshot`; con
-`VITE_RUNTIME_POLLING=true` usa polling mientras recupera el WebSocket.
-
-## Fase 5 · fallbacks y freeze
-
-La `UISpec` recibida desde la API se anima durante 200 ms y conserva una vista
-vacía explícita antes del primer payload. Cerrar y reabrir la demo reconstruye
-la UI desde el snapshot persistido; si el WebSocket cae, el runtime cambia a
-polling y vuelve al canal vivo cuando la conexión se recupera.
-
-Nginx resuelve dinámicamente `BACKEND_URL` y reenvía también los upgrades de
-WebSocket. El frontend puede desplegarse por sí solo; no necesita una red
-privada, contenedor o volumen del backend/PostgreSQL.
-
-Para probar el modo determinista y local, desactiva los dos upgrades LLM en el
-backend. Después de construir las imágenes una vez, el flujo no requiere una
-API externa:
-
-```env
-LLM_UPGRADE_ENABLED=false
-GENERIC_STEP_LLM_ENABLED=false
-VITE_RUNTIME_POLLING=true
-```
-
-## Editor de workflow
-
-`/editor` genera un `StepDefinition` genérico desde `title`, `objective`, rutas
-de `inputs` y `requiresHumanReview`. La vista JSON y el diff se actualizan en
-vivo. Al confirmar, el frontend crea `v(n+1)` con el flow base más el paso
-generado mediante
-`POST /workflows/{id}/versions`; “Run with v(n+1)” inicia un run asociado a su
-`workflowVersionId` y lo abre en `/demo`.
-
-La demo identifica versiones posteriores a v1 como trial-by-fire y permite
-exportar su event log JSON directamente desde el header del runtime.
-
-Si se entra desde un run activo, `/editor?runId=...` reutiliza su proyección
-como baseline. Sin `runId`, la primera confirmación crea un run base para
-identificar el workflow vigente.
-
-El mismo formulario aparece plegado dentro de `/demo` como fallback del trial.
-Ari puede proponer el `StepDefinition`; el botón del panel crea la nueva versión
-y abre su run por los mismos endpoints del editor manual.
+Historial y feedback de cada proyecto (`GET/DELETE /studio/projects/{id}`,
+`POST /studio/projects/{id}/feedback`) viven en
+`src/components/studio/ProjectHistory.tsx` y `ProjectFeedback.tsx`; calificar
+un proyecto (1–5 + comentario opcional) hace que el backend use esa
+calificación para pedirle al modelo más esfuerzo de razonamiento en la
+siguiente generación de ese mismo proyecto.
 
 ## Estructura
 
 ```text
 src/
-├── assistant/          chat, chips policy-safe y proposedStep
-├── components/         presentación y diez primitivas, incluido MapLibre
-├── config/             identidad y rutas públicas mínimas
-├── editor/             formulario, DTO HTTP, diff y creación de versiones
-├── history/            historia local de runs por operationId
-├── inspector/          inspector vivo de UISpec
-├── pages/              landing y shell del walking skeleton/golden path
-├── runtime/            contratos, schemas, renderer, reducer y socket
-├── test/               configuración de Vitest
-├── App.tsx             selección mínima entre landing, demo y editor
-└── index.css           tokens y estilos compartidos
+├── pages/Studio.tsx        página única de la app; orquesta prompt, historial y feedback
+├── studio/                 api.ts (fetch a /studio/*), projects.ts, StudioRenderer.tsx
+├── components/studio/      canvas, árbol de iteraciones, consola del orquestador, feedback
+│
+├── pages/Demo.tsx          ⚠ heredado, sin ruta que lo alcance
+├── pages/Landing.tsx       ⚠ heredado, sin ruta que lo alcance
+├── editor/                 ⚠ heredado (editor de workflow del runtime)
+├── runtime/                ⚠ heredado (contratos, AJV, renderer, reducer, WebSocket)
+├── assistant/              ⚠ heredado (chat de Ari)
+├── inspector/              ⚠ heredado (inspector de UISpec)
+├── history/                ⚠ heredado (historia de runs)
+│
+├── components/ui-kit/      primitivas visuales del runtime heredado (RouteMap sí se
+│                            reutiliza en Studio para el nodo `map`)
+├── config/                 identidad y rutas públicas mínimas
+├── test/                   configuración de Vitest
+├── App.tsx                 monta únicamente <Studio />
+└── index.css               tokens, estilos de Studio (.generated-*) y del runtime heredado
 ```
 
 ## Calidad y despliegue
@@ -171,3 +157,22 @@ Docker publica el frontend en `http://localhost:3000`, escucha el `PORT`
 inyectado por la plataforma (8080 por defecto) y expone `/health`. Railway usa
 `railway.json`; el contenedor solo contiene Nginx y los assets estáticos, y su
 proxy conecta con el backend externo configurado en `BACKEND_URL`.
+
+### Despliegue independiente en Railway
+
+Despliega este repositorio como un único servicio Docker. No agregues
+servicios de backend o PostgreSQL al proyecto del frontend. Configura
+`VITE_DEMO_TOKEN` como variable de build (heredado, pero el build lo espera)
+y, solo si usas otro ambiente, `BACKEND_URL` en runtime. Sin override, el
+contenedor usa el backend público de producción.
+
+## Problema conocido (backend, pero te va a doler aquí)
+
+Si `/studio/projects/{id}` responde **500 con un error de CORS** en la
+consola del navegador, no es un problema de CORS: es que la base de datos de
+producción tiene una columna nueva desincronizada (el backend no tiene
+migraciones, solo crea tablas que faltan, nunca las altera). El navegador
+reporta como "CORS" cualquier 500 que salga de una excepción no manejada,
+porque esa respuesta nunca pasa por el middleware que agrega el header. El
+fix real (una sentencia `ALTER TABLE`) y la explicación completa están en
+`Hack-a-ton-end/README.md`.
