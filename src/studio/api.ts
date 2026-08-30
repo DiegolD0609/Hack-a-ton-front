@@ -5,6 +5,11 @@ export interface StudioGenerateOptions {
   name?: string | null
 }
 
+export interface StudioFeedback {
+  score: number
+  comment?: string | null
+}
+
 export class StudioApiError extends Error {
   status: number
 
@@ -87,4 +92,32 @@ export async function getStudioProject(
   })
   if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
   return response.json() as Promise<unknown>
+}
+
+export async function submitStudioProjectFeedback(
+  apiUrl: string,
+  projectId: string,
+  feedback: StudioFeedback,
+  request: StudioRequest = fetch,
+): Promise<void> {
+  if (!Number.isInteger(feedback.score) || feedback.score < 1 || feedback.score > 5) {
+    throw new Error('La calificación debe ser un entero entre 1 y 5.')
+  }
+
+  const comment = feedback.comment?.trim() ?? ''
+  if (comment.length > 500) throw new Error('El comentario no puede exceder 500 caracteres.')
+
+  const response = await request(
+    apiEndpoint(apiUrl, `/studio/projects/${encodeURIComponent(projectId)}/feedback`),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        score: feedback.score,
+        ...(comment ? { comment } : {}),
+      }),
+    },
+  )
+
+  if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
 }

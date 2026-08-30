@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generateStudioUI, getStudioProject, listStudioProjects, type StudioRequest } from './api'
+import {
+  generateStudioUI,
+  getStudioProject,
+  listStudioProjects,
+  submitStudioProjectFeedback,
+  type StudioRequest,
+} from './api'
 
 function jsonResponse(payload: unknown): Response {
   return { ok: true, json: async () => payload } as Response
@@ -50,6 +56,33 @@ describe('standalone Studio API', () => {
     expect(request.mock.calls[0][0]).toMatch(/\/api\/studio\/projects$/)
     expect(request.mock.calls[0][1]).toMatchObject({ method: 'GET' })
     expect(request.mock.calls[1][0]).toMatch(/\/api\/studio\/projects\/conv_one$/)
+  })
+
+  it('submits project-level feedback using only score and an optional trimmed comment', async () => {
+    const request = vi.fn<StudioRequest>().mockResolvedValue({
+      ok: true,
+      status: 204,
+    } as Response)
+
+    await submitStudioProjectFeedback('/api', 'conv_one', {
+      score: 5,
+      comment: '  Keep the compact hierarchy.  ',
+    }, request)
+
+    expect(request.mock.calls[0][0]).toMatch(/\/api\/studio\/projects\/conv_one\/feedback$/)
+    expect(request.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score: 5, comment: 'Keep the compact hierarchy.' }),
+    })
+  })
+
+  it('rejects an invalid feedback score before calling the backend', async () => {
+    const request = vi.fn<StudioRequest>()
+
+    await expect(submitStudioProjectFeedback('/api', 'conv_one', { score: 6 }, request))
+      .rejects.toThrow('entero entre 1 y 5')
+    expect(request).not.toHaveBeenCalled()
   })
 
   it('surfaces the backend error without falling back to a run', async () => {
