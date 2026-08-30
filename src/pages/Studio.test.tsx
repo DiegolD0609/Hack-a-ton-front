@@ -40,6 +40,52 @@ afterEach(() => {
 })
 
 describe('Studio conversation memory', () => {
+  it('creates, switches, and restores independent UI projects', async () => {
+    const request = vi.fn<StudioRequest>()
+      .mockResolvedValueOnce(studioResponse('conv_project_a', 'Project A action', 'Project A reasoning'))
+      .mockResolvedValueOnce(studioResponse('conv_project_b', 'Project B action', 'Project B reasoning'))
+    vi.stubGlobal('fetch', request)
+    const { unmount } = render(<Studio />)
+
+    generate('Prompt for project A')
+    expect(await screen.findByRole('button', { name: 'Project A action' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear nuevo proyecto' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
+      target: { value: 'Dashboard B' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }))
+
+    expect(screen.getByRole('combobox', { name: 'Cambiar proyecto' })).toHaveDisplayValue('Dashboard B')
+    expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' })).toHaveValue('')
+    generate('Prompt for project B')
+    expect(await screen.findByRole('button', { name: 'Project B action' })).toBeInTheDocument()
+    expect(screen.getByRole('treeitem', { name: /Prompt for project B/ })).toBeInTheDocument()
+    expect(screen.getByText('Project B reasoning', { selector: '.studio-history-turn > span:last-child' }))
+      .toBeInTheDocument()
+
+    const projectSelect = screen.getByRole('combobox', { name: 'Cambiar proyecto' })
+    const projectA = screen.getByRole('option', { name: 'UI Project 1' }) as HTMLOptionElement
+    fireEvent.change(projectSelect, { target: { value: projectA.value } })
+
+    expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' }))
+      .toHaveValue('Prompt for project A')
+    expect(screen.getByRole('button', { name: 'Project A action' })).toBeInTheDocument()
+    expect(screen.getByRole('treeitem', { name: /Prompt for project A/ })).toBeInTheDocument()
+
+    const projectB = screen.getByRole('option', { name: 'Dashboard B' }) as HTMLOptionElement
+    fireEvent.change(projectSelect, { target: { value: projectB.value } })
+    await waitFor(() => expect(localStorage.getItem('kernel-panic.studio.workspace.v1')).toContain('Dashboard B'))
+
+    unmount()
+    render(<Studio />)
+
+    expect(screen.getByRole('combobox', { name: 'Cambiar proyecto' })).toHaveDisplayValue('Dashboard B')
+    expect(screen.getByRole('textbox', { name: 'Instrucción exacta para el API' }))
+      .toHaveValue('Prompt for project B')
+    expect(screen.getByRole('button', { name: 'Project B action' })).toBeInTheDocument()
+  })
+
   it('continues one backend conversation and starts another from the root', async () => {
     const request = vi.fn<StudioRequest>()
       .mockResolvedValueOnce(studioResponse('conv_alpha', 'First action', 'First ready'))

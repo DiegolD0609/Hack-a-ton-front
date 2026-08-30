@@ -23,9 +23,9 @@ interface NodePosition {
 }
 
 const NODE_WIDTH = 180
-const NODE_HEIGHT = 64
+const NODE_HEIGHT = 94
 const COLUMN_GAP = 60
-const ROW_GAP = 86
+const ROW_GAP = 116
 const CANVAS_PADDING = 16
 
 function nodeSummary(node: IterationTreeNode): string {
@@ -44,6 +44,7 @@ function connectorPath(parent: NodePosition, child: NodePosition): string {
 
 export default function IterationTree({ iterations, selectedId, onSelect }: IterationTreeProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const selectedNode = iterations.find((iteration) => iteration.id === selectedId) ?? null
   const childrenByParent = new Map<number | null, IterationTreeNode[]>()
 
   for (const iteration of iterations) {
@@ -142,8 +143,12 @@ export default function IterationTree({ iterations, selectedId, onSelect }: Iter
             style={{ left: rootPosition.x, top: rootPosition.y - NODE_HEIGHT / 2 }}
             onClick={() => onSelect(null)}
           >
-            <span className="studio-tree-root-dot" />
-            <span>
+            <span className="studio-tree-node-head">
+              <span className="studio-tree-node-index">00</span>
+              <span className="studio-tree-node-kind">STATE</span>
+              <span className="studio-tree-root-dot" />
+            </span>
+            <span className="studio-tree-node-copy">
               <strong>Start state</strong>
               <small>Empty playground</small>
             </span>
@@ -163,18 +168,35 @@ export default function IterationTree({ iterations, selectedId, onSelect }: Iter
                 style={{ left: position.x, top: position.y - NODE_HEIGHT / 2 }}
                 onClick={() => onSelect(iteration.id)}
               >
-                <span className="studio-tree-node-index">
-                  {String(iteration.id).padStart(2, '0')}
+                <span className="studio-tree-node-head">
+                  <span className="studio-tree-node-index">
+                    {String(iteration.id).padStart(2, '0')}
+                  </span>
+                  <span className="studio-tree-node-kind">PROMPT</span>
+                  <span className="studio-tree-status" aria-hidden="true" />
                 </span>
                 <span className="studio-tree-node-copy">
                   <strong>{iteration.prompt}</strong>
                   <small>{nodeSummary(iteration)}</small>
                 </span>
-                <span className="studio-tree-status" aria-hidden="true" />
               </button>
             )
           })}
         </div>
+      </div>
+
+      <div className="studio-tree-metadata" aria-live="polite">
+        <span className="studio-tree-metadata-label">Selected node metadata</span>
+        <dl>
+          <div>
+            <dt>Type</dt>
+            <dd>{selectedNode ? 'Prompt' : 'State'}</dd>
+          </div>
+          <div className="is-prompt">
+            <dt>Prompt</dt>
+            <dd>{selectedNode?.prompt ?? 'No prompt — this is the project root.'}</dd>
+          </div>
+        </dl>
       </div>
     </section>
   )

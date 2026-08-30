@@ -1,22 +1,22 @@
-import { useMemo, useRef, useState } from 'react'
-import IterationTree, {
-  type IterationStatus,
-  type IterationTreeNode,
-} from '@/components/studio/IterationTree'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import IterationTree, { type IterationStatus } from '@/components/studio/IterationTree'
+import ProjectHistory from '@/components/studio/ProjectHistory'
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
 import { studioResponseMeta } from '@/studio/StudioRenderer'
 import { generateStudioUI, StudioApiError } from '@/studio/api'
-
-interface StudioIteration extends IterationTreeNode {
-  conversationId: string | null
-  response: unknown
-}
+import {
+  createStudioProject,
+  loadStudioWorkspace,
+  saveStudioWorkspace,
+  type StudioProject,
+  type StudioProjectIteration,
+} from '@/studio/projects'
 
 function latestCompletedIteration(
-  iterations: StudioIteration[],
+  iterations: StudioProjectIteration[],
   conversationId: string | null,
-): StudioIteration | null {
+): StudioProjectIteration | null {
   if (!conversationId) return null
   for (let index = iterations.length - 1; index >= 0; index -= 1) {
     const iteration = iterations[index]
@@ -28,24 +28,38 @@ function latestCompletedIteration(
 }
 
 export default function Studio() {
-  const [prompt, setPrompt] = useState('')
-  const [iterations, setIterations] = useState<StudioIteration[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [workspace, setWorkspace] = useState(loadStudioWorkspace)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const iterationCounter = useRef(0)
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [storageError, setStorageError] = useState(false)
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+  const activeProject = (
+    workspace.projects.find((project) => project.id === workspace.activeProjectId)
+    ?? workspace.projects[0]
+  ) as StudioProject
   const selectedIteration = useMemo(
-    () => iterations.find((iteration) => iteration.id === selectedId) ?? null,
-    [iterations, selectedId],
+    () => activeProject.iterations.find((iteration) => iteration.id === activeProject.selectedId) ?? null,
+    [activeProject.iterations, activeProject.selectedId],
   )
   const selectedResponse = selectedIteration?.status === 'completed'
     ? selectedIteration.response
     : null
   const selectedMeta = studioResponseMeta(selectedResponse)
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-  const sessionStatus = error
+  useEffect(() => {
+    setStorageError(!saveStudioWorkspace(workspace))
+  }, [workspace])
+
+  const updateProject = (projectId: string, update: (project: StudioProject) => StudioProject) => {
+    setWorkspace((current) => ({
+      ...current,
+      projects: current.projects.map((project) => project.id === projectId ? update(project) : project),
+    }))
+  }
+
+  const sessionStatus = activeProject.error
     ? 'Atención requerida'
     : isGenerating
       ? 'Generando en el API'
@@ -53,14 +67,32 @@ export default function Studio() {
         ? `Iteración ${String(selectedIteration?.id ?? 0).padStart(2, '0')}`
         : 'Playground vacío'
 
+  const createProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const project = createStudioProject(newProjectName)
+    setWorkspace((current) => ({
+      ...current,
+      activeProjectId: project.id,
+      projects: [...current.projects, project],
+    }))
+    setNewProjectName('')
+    setIsCreatingProject(false)
+  }
+
+  const openProjectCreator = () => {
+    setNewProjectName(`UI Project ${workspace.projects.length + 1}`)
+    setIsCreatingProject(true)
+  }
+
   const generate = async () => {
-    const exactPrompt = prompt.trim()
+    const exactPrompt = activeProject.prompt.trim()
     if (!exactPrompt || isGenerating) return
 
+    const projectId = activeProject.id
     const selectedConversationId = selectedIteration?.conversationId ?? null
-    const parent = latestCompletedIteration(iterations, selectedConversationId)
-    const iterationId = ++iterationCounter.current
-    const pending: StudioIteration = {
+    const parent = latestCompletedIteration(activeProject.iterations, selectedConversationId)
+    const iterationId = Math.max(0, ...activeProject.iterations.map((iteration) => iteration.id)) + 1
+    const pending: StudioProjectIteration = {
       id: iterationId,
       parentId: parent?.id ?? null,
       prompt: exactPrompt,
@@ -70,10 +102,13 @@ export default function Studio() {
       response: null,
     }
 
-    setIterations((current) => [...current, pending])
-    setSelectedId(iterationId)
+    updateProject(projectId, (project) => ({
+      ...project,
+      iterations: [...project.iterations, pending],
+      selectedId: iterationId,
+      error: null,
+    }))
     setIsGenerating(true)
-    setError(null)
     try {
       let generated: unknown
       try {
@@ -83,11 +118,12 @@ export default function Studio() {
           throw requestError
         }
 
-        setIterations((current) => current.map((iteration) => (
-          iteration.id === iterationId
+        updateProject(projectId, (project) => ({
+          ...project,
+          iterations: project.iterations.map((iteration) => iteration.id === iterationId
             ? { ...iteration, parentId: null, conversationId: null }
-            : iteration
-        )))
+            : iteration),
+        }))
         generated = await generateStudioUI(apiUrl, exactPrompt)
       }
 
@@ -95,8 +131,9 @@ export default function Studio() {
       if (!responseMeta.conversationId) {
         throw new Error('El API no devolvió conversationId.')
       }
-      setIterations((current) => current.map((iteration) => (
-        iteration.id === iterationId
+      updateProject(projectId, (project) => ({
+        ...project,
+        iterations: project.iterations.map((iteration) => iteration.id === iterationId
           ? {
               ...iteration,
               status: 'completed' as IterationStatus,
@@ -104,33 +141,41 @@ export default function Studio() {
               conversationId: responseMeta.conversationId,
               response: generated,
             }
-          : iteration
-      )))
+          : iteration),
+      }))
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'No fue posible generar la interfaz.'
-      setError(message)
-      setIterations((current) => current.map((iteration) => (
-        iteration.id === iterationId
+      updateProject(projectId, (project) => ({
+        ...project,
+        error: message,
+        iterations: project.iterations.map((iteration) => iteration.id === iterationId
           ? { ...iteration, status: 'error' as IterationStatus, suggestion: message }
-          : iteration
-      )))
+          : iteration),
+      }))
     } finally {
       setIsGenerating(false)
     }
   }
 
   const selectIteration = (id: number | null) => {
-    setSelectedId(id)
-    const selected = iterations.find((iteration) => iteration.id === id)
-    setError(selected?.status === 'error' ? selected.suggestion : null)
+    updateProject(activeProject.id, (project) => {
+      const selected = project.iterations.find((iteration) => iteration.id === id)
+      return {
+        ...project,
+        selectedId: id,
+        error: selected?.status === 'error' ? selected.suggestion : null,
+      }
+    })
   }
 
   const clear = () => {
-    setPrompt('')
-    setIterations([])
-    setSelectedId(null)
-    setError(null)
-    iterationCounter.current = 0
+    updateProject(activeProject.id, (project) => ({
+      ...project,
+      prompt: '',
+      iterations: [],
+      selectedId: null,
+      error: null,
+    }))
   }
 
   return (
@@ -144,12 +189,56 @@ export default function Studio() {
           </span>
         </a>
 
-        <div className="studio-session-status" role="status">
-          <span className={`status-orb ${error ? 'is-paused' : ''}`} />
-          <span>{sessionStatus}</span>
+        <div className="studio-project-switcher">
+          <StudioIcon name="layers" size={16} />
+          <label>
+            <span>Project</span>
+            <select
+              aria-label="Cambiar proyecto"
+              value={activeProject.id}
+              disabled={isGenerating}
+              onChange={(event) => setWorkspace((current) => ({
+                ...current,
+                activeProjectId: event.target.value,
+              }))}
+            >
+              {workspace.projects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            aria-label="Crear nuevo proyecto"
+            disabled={isGenerating}
+            onClick={openProjectCreator}
+          >
+            +
+          </button>
+
+          {isCreatingProject ? (
+            <form className="studio-project-dialog" role="dialog" aria-label="Nuevo proyecto" onSubmit={createProject}>
+              <label htmlFor="new-project-name">Project name</label>
+              <input
+                id="new-project-name"
+                value={newProjectName}
+                maxLength={60}
+                autoFocus
+                onChange={(event) => setNewProjectName(event.target.value)}
+              />
+              <div>
+                <button type="button" onClick={() => setIsCreatingProject(false)}>Cancel</button>
+                <button type="submit" disabled={!newProjectName.trim()}>Create project</button>
+              </div>
+            </form>
+          ) : null}
         </div>
 
         <div className="studio-top-actions">
+          <div className="studio-session-status" role="status">
+            <span className={`status-orb ${activeProject.error ? 'is-paused' : ''}`} />
+            <span>{sessionStatus}</span>
+          </div>
           <button type="button" className="studio-icon-button" aria-label="Limpiar playground" onClick={clear}>
             <StudioIcon name="refresh" />
           </button>
@@ -167,18 +256,21 @@ export default function Studio() {
             <textarea
               id="studio-prompt"
               className="studio-prompt"
-              value={prompt}
+              value={activeProject.prompt}
               maxLength={2000}
               disabled={isGenerating}
               placeholder="Ej. Genera exclusivamente dos botones: Aceptar y Cancelar."
-              onChange={(event) => setPrompt(event.target.value)}
+              onChange={(event) => updateProject(activeProject.id, (project) => ({
+                ...project,
+                prompt: event.target.value,
+              }))}
             />
             <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="font-mono text-[10px] text-black/35">{prompt.length}/2000</span>
+              <span className="font-mono text-[10px] text-black/35">{activeProject.prompt.length}/2000</span>
               <button
                 type="button"
                 className="studio-run-button"
-                disabled={!prompt.trim() || isGenerating}
+                disabled={!activeProject.prompt.trim() || isGenerating}
                 onClick={() => void generate()}
               >
                 {isGenerating ? <StudioIcon name="refresh" className="animate-spin" /> : <StudioIcon name="arrow" />}
@@ -188,15 +280,28 @@ export default function Studio() {
           </section>
 
           <IterationTree
-            iterations={iterations}
-            selectedId={selectedId}
+            iterations={activeProject.iterations}
+            selectedId={activeProject.selectedId}
             onSelect={selectIteration}
           />
 
-          {error ? (
+          <ProjectHistory
+            iterations={activeProject.iterations}
+            selectedId={activeProject.selectedId}
+            onSelect={selectIteration}
+          />
+
+          {activeProject.error ? (
             <div className="studio-error" role="alert">
               <strong>El API no pudo responder</strong>
-              <span>{error}</span>
+              <span>{activeProject.error}</span>
+            </div>
+          ) : null}
+
+          {storageError ? (
+            <div className="studio-error" role="alert">
+              <strong>Project storage is full</strong>
+              <span>The current session still works, but recent changes may not survive a refresh.</span>
             </div>
           ) : null}
         </aside>
