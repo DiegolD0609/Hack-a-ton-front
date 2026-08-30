@@ -1,32 +1,17 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import App from './App'
 
-describe('application surfaces', () => {
-  beforeEach(() => {
-    window.history.pushState({}, '', '/landing')
-  })
-
-  it('keeps a focused landing without authentication controls', () => {
+describe('agent learning studio', () => {
+  it('renders the single-page brief, playground, trace and workflow', () => {
     render(<App />)
-    expect(screen.getByRole('heading', { name: 'Logística en movimiento.' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Explorar la demo' })).toHaveAttribute('href', '/demo')
-    expect(screen.queryByText(/login|sign up|iniciar sesión/i)).not.toBeInTheDocument()
-  })
-
-  it('renders the agent UI runtime at /demo', () => {
-    window.history.pushState({}, '', '/demo')
-    render(<App />)
-    expect(screen.getByRole('heading', { name: /interfaz viva/i })).toBeInTheDocument()
-    expect(screen.getByText('El renderer está listo.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Iniciar golden path' })).toBeEnabled()
-  })
-
-  it('renders the Phase 4 workflow editor at /editor', () => {
-    window.history.pushState({}, '', '/editor')
-    render(<App />)
-    expect(screen.getByRole('heading', { name: 'Inventa un paso en runtime.' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Title')).toBeEnabled()
-    expect(screen.getByLabelText('Vista previa JSON del paso')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Objetivo para el agente' })).toHaveValue(
+      'Crea una interfaz operativa que priorice la anomalía, mantenga la decisión humana visible y explique por qué cambia cada componente.',
+    )
+    expect(screen.getByRole('button', { name: 'Run agent' })).toBeEnabled()
+    expect(screen.getByRole('heading', { name: 'Playground' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Agent trace' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Workflow' })).toBeInTheDocument()
+    expect(screen.getByText('Mantén visible la acción principal.')).toBeInTheDocument()
   })
 })
