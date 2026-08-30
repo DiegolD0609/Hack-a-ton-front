@@ -45,13 +45,26 @@ VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 VITE_RUNTIME_POLLING=true
 VITE_ASSISTANT_ENABLED=true
 VITE_MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
-BACKEND_URL=http://localhost:8000
+BACKEND_URL=https://hack-a-ton-end-production.up.railway.app
 ```
 
-Vite y Nginx envían `/api/*` a `BACKEND_URL` y eliminan el prefijo `/api`.
+El navegador usa siempre `/api/*`; Vite en desarrollo y Nginx en el contenedor
+lo redirigen a `BACKEND_URL` y eliminan el prefijo `/api`. En Railway el
+frontend es un servicio independiente y, por defecto, Nginx lo reenvía a
+`https://hack-a-ton-end-production.up.railway.app`. Esto mantiene REST y
+WebSocket como same-origin para el navegador sin desplegar backend ni PostgreSQL
+en el servicio del frontend.
+
 `VITE_DEMO_TOKEN` debe coincidir con `DEMO_TOKEN` del backend para el handshake
 WebSocket. Es un control de demo visible en el bundle, no un secreto de
 producción.
+
+### Despliegue independiente en Railway
+
+Despliega este repositorio como un único servicio Docker. No agregues servicios
+de backend o PostgreSQL al proyecto del frontend. Configura `VITE_DEMO_TOKEN`
+como variable de build y, solo si se usa otro ambiente, configura `BACKEND_URL`
+en runtime. Sin override, el contenedor usa el backend público de producción.
 
 ## Runtime y contratos
 
@@ -94,9 +107,9 @@ vacía explícita antes del primer payload. Cerrar y reabrir la demo reconstruye
 la UI desde el snapshot persistido; si el WebSocket cae, el runtime cambia a
 polling y vuelve al canal vivo cuando la conexión se recupera.
 
-El proxy Nginx resuelve dinámicamente el host privado de `BACKEND_URL`. Esto
-permite que Railway reubique o redespliegue el backend sin dejar al frontend
-anclado a una dirección anterior.
+Nginx resuelve dinámicamente `BACKEND_URL` y reenvía también los upgrades de
+WebSocket. El frontend puede desplegarse por sí solo; no necesita una red
+privada, contenedor o volumen del backend/PostgreSQL.
 
 Para probar el modo determinista y local, desactiva los dos upgrades LLM en el
 backend. Después de construir las imágenes una vez, el flujo no requiere una
@@ -155,5 +168,6 @@ docker compose up --build
 ```
 
 Docker publica el frontend en `http://localhost:3000`, escucha el `PORT`
-inyectado por la plataforma y expone `/health`. Railway usa `railway.json` y el
-proxy Nginx para alcanzar el backend por su red privada.
+inyectado por la plataforma y expone `/health`. Railway usa `railway.json`; el
+contenedor solo contiene Nginx y los assets estáticos, y su proxy conecta con el
+backend externo configurado en `BACKEND_URL`.
