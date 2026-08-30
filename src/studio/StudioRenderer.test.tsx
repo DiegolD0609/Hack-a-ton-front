@@ -28,7 +28,7 @@ describe('contract-free Studio renderer', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'Acciones' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Acciones' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('button')).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Aceptar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
