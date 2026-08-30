@@ -427,3 +427,41 @@ export type ServerEnvelope =
   | ErrorEnvelope
 
 export type WebSocketEnvelope = ServerEnvelope | ActionSubmittedEnvelope
+
+/**
+ * Addendum v1.1 — assistant sidecar over HTTP (POST /runs/{runId}/assist),
+ * deliberately outside the frozen WebSocket envelope.
+ */
+export interface AssistMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistRequest {
+  schemaVersion: SchemaVersion
+  message: string
+  history: AssistMessage[]
+}
+
+/** Mirror of app/flow/models.py StepDefinition (runtime-editable step). */
+export interface StepDefinition {
+  id: string
+  type: string
+  title: string
+  objective: string
+  inputs: string[]
+  requiresHumanReview: boolean
+}
+
+export interface AssistRecommendedAction {
+  actionId: ActionId
+  rationale: string
+}
+
+export interface AssistResponse {
+  schemaVersion: SchemaVersion
+  runId: RunId
+  reply: string
+  recommendedActions: AssistRecommendedAction[]
+  proposedStep?: StepDefinition | null
+}

@@ -17,6 +17,7 @@ import type {
   CompareProps,
   DecisionPanelProps,
   KeyValueProps,
+  MapProps,
   MetricProps,
   MapProps,
   PageProps,
@@ -82,6 +83,10 @@ export const componentRegistry: Readonly<Record<RegisteredComponentType, Registr
         onAction,
       })
     },
+  },
+  map: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(RouteMap, props as MapProps),
   },
   step: {
     acceptsChildren: false,
