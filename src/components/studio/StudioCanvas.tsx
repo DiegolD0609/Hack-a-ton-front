@@ -39,7 +39,7 @@ export default function StudioCanvas({
           <div className="min-w-0">
             <h2 id="canvas-title" className="studio-panel-title">Playground</h2>
             <p className="studio-panel-subtitle">
-              {uiSpec ? `UISpec · v${stateVersion ?? 0}` : 'Esperando una instrucción'}
+              {uiSpec ? `UISpec · v${stateVersion ?? 0}` : 'Vacío hasta recibir la UISpec del API'}
             </p>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function StudioCanvas({
                 />
               </div>
             ) : (
-              <EmptyCanvas isBuilding={isBuilding} />
+              <div className="studio-empty-canvas" aria-label="Playground vacío" />
             )}
 
             {isBuilding && uiSpec ? (
@@ -135,30 +135,5 @@ export default function StudioCanvas({
         </span>
       </footer>
     </section>
-  )
-}
-
-function EmptyCanvas({ isBuilding }: { isBuilding: boolean }) {
-  return (
-    <div className="studio-empty-canvas">
-      <div className="empty-canvas-orbit" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className="relative z-10 max-w-sm text-center">
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#171714] text-[#dbff45] shadow-xl">
-          <StudioIcon name={isBuilding ? 'refresh' : 'cursor'} size={22} className={isBuilding ? 'animate-spin' : ''} />
-        </span>
-        <h3 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-[#171714]">
-          {isBuilding ? 'Preparando el primer run' : 'El canvas está listo'}
-        </h3>
-        <p className="mt-2 text-sm leading-6 text-black/50">
-          {isBuilding
-            ? 'Versionamos tu brief y abrimos el canal de eventos.'
-            : 'Describe el resultado. Verás cada decisión antes de ver la respuesta final.'}
-        </p>
-      </div>
-    </div>
   )
 }
