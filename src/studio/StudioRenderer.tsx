@@ -209,6 +209,219 @@ function StudioStep({ props }: { props: LooseObject }) {
   )
 }
 
+function StudioSearchBar({ props }: { props: LooseObject }) {
+  const label = stringValue(props.label)
+  return (
+    <label className="generated-search">
+      {label ? <span>{label}</span> : null}
+      <input
+        type="search"
+        readOnly
+        placeholder={stringValue(props.placeholder) ?? 'Buscar…'}
+        defaultValue={stringValue(props.value) ?? ''}
+      />
+    </label>
+  )
+}
+
+function StudioDropdown({ props }: { props: LooseObject }) {
+  const label = stringValue(props.label)
+  const options = Array.isArray(props.options) ? props.options : []
+  const selectedValue = stringValue(props.selectedValue)
+  return (
+    <label className="generated-dropdown">
+      {label ? <span>{label}</span> : null}
+      <select disabled defaultValue={selectedValue ?? ''}>
+        {stringValue(props.placeholder) ? (
+          <option value="" disabled>
+            {stringValue(props.placeholder)}
+          </option>
+        ) : null}
+        {options.map((option, index) => {
+          const entry = objectValue(option) ?? {}
+          const value = stringValue(entry.value) ?? String(index)
+          return (
+            <option key={value} value={value}>
+              {stringValue(entry.label) ?? value}
+            </option>
+          )
+        })}
+      </select>
+    </label>
+  )
+}
+
+const CHART_COLORS = ['#7c5cff', '#dbff45', '#68b539', '#d05a43', '#4aa8d8', '#f0a63c']
+
+function StudioChart({ props }: { props: LooseObject }) {
+  const points = (Array.isArray(props.points) ? props.points : [])
+    .map((point) => objectValue(point) ?? {})
+    .map((entry) => ({
+      label: stringValue(entry.label) ?? '',
+      value: typeof entry.value === 'number' ? entry.value : Number(entry.value) || 0,
+    }))
+  const chartType = stringValue(props.chartType) ?? 'bar'
+  const maxValue = Math.max(1, ...points.map((point) => point.value))
+
+  return (
+    <section className={`generated-card generated-chart emphasis-${stringValue(props.emphasis) ?? 'normal'}`}>
+      {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
+      {chartType === 'pie' ? (
+        <ChartPie points={points} />
+      ) : chartType === 'line' ? (
+        <ChartLine points={points} maxValue={maxValue} />
+      ) : (
+        <ChartBars points={points} maxValue={maxValue} />
+      )}
+    </section>
+  )
+}
+
+function ChartBars({ points, maxValue }: { points: { label: string; value: number }[]; maxValue: number }) {
+  return (
+    <div className="generated-chart-bars">
+      {points.map((point, index) => (
+        <div className="generated-chart-bar" key={`${point.label}-${index}`}>
+          <div
+            className="generated-chart-bar-fill"
+            style={{
+              height: `${Math.max(2, (point.value / maxValue) * 100)}%`,
+              background: CHART_COLORS[index % CHART_COLORS.length],
+            }}
+          />
+          <span className="generated-chart-value">{point.value}</span>
+          <span className="generated-chart-label">{point.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ChartLine({ points, maxValue }: { points: { label: string; value: number }[]; maxValue: number }) {
+  const width = 100
+  const height = 100
+  const step = points.length > 1 ? width / (points.length - 1) : 0
+  const coords = points.map((point, index) => {
+    const x = points.length > 1 ? index * step : width / 2
+    const y = height - (point.value / maxValue) * height
+    return { x, y, point }
+  })
+  const path = coords.map((coord, index) => `${index === 0 ? 'M' : 'L'}${coord.x},${coord.y}`).join(' ')
+
+  return (
+    <div className="generated-chart-line">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Gráfico de línea">
+        <path d={path} fill="none" stroke="var(--studio-violet)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        {coords.map((coord, index) => (
+          <circle key={index} cx={coord.x} cy={coord.y} r={2} fill="var(--studio-violet)" />
+        ))}
+      </svg>
+      <div className="generated-chart-line-labels">
+        {points.map((point, index) => (
+          <span key={`${point.label}-${index}`}>{point.label}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ChartPie({ points }: { points: { label: string; value: number }[] }) {
+  const total = points.reduce((sum, point) => sum + point.value, 0) || 1
+  let cursor = 0
+  const slices = points.map((point, index) => {
+    const fraction = point.value / total
+    const start = cursor
+    cursor += fraction
+    return { ...point, start, end: cursor, color: CHART_COLORS[index % CHART_COLORS.length] }
+  })
+  const gradient = slices
+    .map((slice) => `${slice.color} ${(slice.start * 100).toFixed(2)}% ${(slice.end * 100).toFixed(2)}%`)
+    .join(', ')
+
+  return (
+    <div className="generated-chart-pie">
+      <div className="generated-chart-pie-circle" style={{ background: `conic-gradient(${gradient})` }} />
+      <ul className="generated-chart-pie-legend">
+        {slices.map((slice, index) => (
+          <li key={`${slice.label}-${index}`}>
+            <span style={{ background: slice.color }} />
+            {slice.label} · {Math.round((slice.value / total) * 100)}%
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function StudioTable({ props }: { props: LooseObject }) {
+  const columns = Array.isArray(props.columns) ? props.columns.map((column) => stringValue(column) ?? '') : []
+  const rows = Array.isArray(props.rows) ? props.rows : []
+  return (
+    <section className="generated-card generated-table">
+      {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
+      <table>
+        <thead>
+          <tr>
+            {columns.map((column, index) => (
+              <th key={`${column}-${index}`}>{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => {
+            const cells = Array.isArray(row) ? row : []
+            return (
+              <tr key={rowIndex}>
+                {cells.map((cell, cellIndex) => (
+                  <td key={cellIndex}>{displayValue(cell)}</td>
+                ))}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </section>
+  )
+}
+
+function StudioProgress({ props }: { props: LooseObject }) {
+  const value = Math.min(100, Math.max(0, typeof props.value === 'number' ? props.value : Number(props.value) || 0))
+  return (
+    <section className={`generated-card generated-progress emphasis-${stringValue(props.emphasis) ?? 'normal'}`}>
+      <div className="generated-progress-head">
+        <span>{stringValue(props.label)}</span>
+        <strong>{Math.round(value)}%</strong>
+      </div>
+      <div className="generated-progress-track">
+        <div className="generated-progress-fill" style={{ width: `${value}%` }} />
+      </div>
+      {stringValue(props.supportingText) ? <p>{stringValue(props.supportingText)}</p> : null}
+    </section>
+  )
+}
+
+function StudioTags({ props }: { props: LooseObject }) {
+  const items = Array.isArray(props.items) ? props.items : []
+  return (
+    <section className="generated-card generated-tags">
+      {stringValue(props.title) ? <h3>{stringValue(props.title)}</h3> : null}
+      <div className="generated-tags-list">
+        {items.map((item, index) => {
+          const entry = objectValue(item) ?? {}
+          return (
+            <span
+              key={`${stringValue(entry.label) ?? index}`}
+              className={`generated-tag is-${stringValue(entry.tone) ?? 'normal'}`}
+            >
+              {stringValue(entry.label)}
+            </span>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function StudioMap({ props }: { props: LooseObject }) {
   const waypoints = Array.isArray(props.waypoints) ? props.waypoints : []
   return (
@@ -247,6 +460,12 @@ function StudioNode({ node }: { node: unknown }) {
     case 'compare': return <StudioCompare props={props} />
     case 'step': return <StudioStep props={props} />
     case 'map': return <StudioMap props={props} />
+    case 'searchBar': return <StudioSearchBar props={props} />
+    case 'dropdown': return <StudioDropdown props={props} />
+    case 'chart': return <StudioChart props={props} />
+    case 'table': return <StudioTable props={props} />
+    case 'progress': return <StudioProgress props={props} />
+    case 'tags': return <StudioTags props={props} />
     default: return <>{renderChildren(record)}</>
   }
 }
@@ -300,6 +519,9 @@ export function summarizeLayout(layout: unknown): { outline: string; nodeCount: 
     else if (type === 'text') label = `text/${stringValue(props.variant) ?? 'body'}`
     else if (type === 'section') label = `section(${stringValue(props.direction) ?? 'column'})`
     else if (type === 'page') label = `page '${stringValue(props.title) ?? ''}'`
+    else if (type === 'chart') label = `chart/${stringValue(props.chartType) ?? 'bar'}`
+    else if (type === 'dropdown') label = `dropdown '${stringValue(props.label) ?? ''}'`
+    else if (type === 'searchBar') label = `searchBar '${stringValue(props.label) ?? ''}'`
     const children = nodeChildren(record)
     if (children.length) {
       return `${label} [${children.map(walk).filter(Boolean).join(', ')}]`
