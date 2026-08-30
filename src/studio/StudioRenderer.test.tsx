@@ -102,4 +102,52 @@ describe('contract-free Studio renderer', () => {
     expect(screen.getByText('nuevo')).toBeInTheDocument()
     expect(screen.getByText('urgente')).toBeInTheDocument()
   })
+
+  it('applies an explicit hex color to the page background and a button', () => {
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Panel', backgroundColor: '#0b1220' },
+            children: [
+              { id: 'ui_btn', type: 'button', props: { label: 'Ir', variant: 'primary', size: 'md', color: '#ff6600' } },
+            ],
+          },
+        }}
+      />,
+    )
+
+    const page = document.querySelector('.generated-page') as HTMLElement
+    expect(page.style.backgroundColor).toBe('rgb(11, 18, 32)')
+    const button = screen.getByRole('button', { name: 'Ir' })
+    expect(button.style.backgroundColor).toBe('rgb(255, 102, 0)')
+  })
+
+  it('ignores a malformed color instead of applying an unsafe style value', () => {
+    render(
+      <StudioRenderer
+        response={{
+          generatedBy: 'llm',
+          layout: {
+            id: 'ui_page',
+            type: 'page',
+            props: { title: 'Panel' },
+            children: [
+              {
+                id: 'ui_btn',
+                type: 'button',
+                props: { label: 'Ir', variant: 'primary', size: 'md', color: 'javascript:alert(1)' },
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: 'Ir' })
+    expect(button.style.backgroundColor).toBe('')
+  })
 })

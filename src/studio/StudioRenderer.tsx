@@ -68,9 +68,19 @@ function renderChildren(node: LooseObject): ReactNode {
   ))
 }
 
-function StudioPage({ node }: { node: LooseObject }) {
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+
+function hexColor(value: unknown): string | null {
+  return typeof value === 'string' && HEX_COLOR_PATTERN.test(value) ? value : null
+}
+
+function StudioPage({ node, props }: { node: LooseObject; props: LooseObject }) {
+  const backgroundColor = hexColor(props.backgroundColor)
   return (
-    <main className="generated-page">
+    <main
+      className="generated-page"
+      style={backgroundColor ? { backgroundColor, borderRadius: '1rem', padding: '1.25rem' } : undefined}
+    >
       <div className="generated-page-content">{renderChildren(node)}</div>
     </main>
   )
@@ -79,8 +89,12 @@ function StudioPage({ node }: { node: LooseObject }) {
 function StudioSection({ node, props }: { node: LooseObject; props: LooseObject }) {
   const title = stringValue(props.title)
   const description = stringValue(props.description)
+  const backgroundColor = hexColor(props.backgroundColor)
   return (
-    <section className={`generated-section emphasis-${stringValue(props.emphasis) ?? 'normal'}`}>
+    <section
+      className={`generated-section emphasis-${stringValue(props.emphasis) ?? 'normal'}`}
+      style={backgroundColor ? { backgroundColor, borderColor: 'transparent' } : undefined}
+    >
       {title || description ? (
         <header>
           {title ? <h2>{title}</h2> : null}
@@ -97,8 +111,13 @@ function StudioSection({ node, props }: { node: LooseObject; props: LooseObject 
 function StudioButton({ props }: { props: LooseObject }) {
   const variant = stringValue(props.variant) ?? 'primary'
   const size = stringValue(props.size) ?? 'md'
+  const color = hexColor(props.color)
   return (
-    <button type="button" className={`generated-button is-${variant} is-${size}`}>
+    <button
+      type="button"
+      className={`generated-button is-${variant} is-${size}`}
+      style={color ? { backgroundColor: color, borderColor: color, color: '#fff' } : undefined}
+    >
       {stringValue(props.label) ?? ''}
     </button>
   )
@@ -107,9 +126,11 @@ function StudioButton({ props }: { props: LooseObject }) {
 function StudioText({ props }: { props: LooseObject }) {
   const content = stringValue(props.content) ?? ''
   const variant = stringValue(props.variant) ?? 'body'
-  if (variant === 'heading') return <h2 className="generated-text is-heading">{content}</h2>
-  if (variant === 'caption') return <small className="generated-text is-caption">{content}</small>
-  return <p className="generated-text">{content}</p>
+  const color = hexColor(props.color)
+  const style = color ? { color } : undefined
+  if (variant === 'heading') return <h2 className="generated-text is-heading" style={style}>{content}</h2>
+  if (variant === 'caption') return <small className="generated-text is-caption" style={style}>{content}</small>
+  return <p className="generated-text" style={style}>{content}</p>
 }
 
 function StudioMetric({ props }: { props: LooseObject }) {
@@ -259,6 +280,7 @@ function StudioChart({ props }: { props: LooseObject }) {
     .map((entry) => ({
       label: stringValue(entry.label) ?? '',
       value: typeof entry.value === 'number' ? entry.value : Number(entry.value) || 0,
+      color: hexColor(entry.color),
     }))
   const chartType = stringValue(props.chartType) ?? 'bar'
   const maxValue = Math.max(1, ...points.map((point) => point.value))
@@ -277,7 +299,9 @@ function StudioChart({ props }: { props: LooseObject }) {
   )
 }
 
-function ChartBars({ points, maxValue }: { points: { label: string; value: number }[]; maxValue: number }) {
+type ChartDatum = { label: string; value: number; color: string | null }
+
+function ChartBars({ points, maxValue }: { points: ChartDatum[]; maxValue: number }) {
   return (
     <div className="generated-chart-bars">
       {points.map((point, index) => (
@@ -286,7 +310,7 @@ function ChartBars({ points, maxValue }: { points: { label: string; value: numbe
             className="generated-chart-bar-fill"
             style={{
               height: `${Math.max(2, (point.value / maxValue) * 100)}%`,
-              background: CHART_COLORS[index % CHART_COLORS.length],
+              background: point.color ?? CHART_COLORS[index % CHART_COLORS.length],
             }}
           />
           <span className="generated-chart-value">{point.value}</span>
@@ -297,7 +321,7 @@ function ChartBars({ points, maxValue }: { points: { label: string; value: numbe
   )
 }
 
-function ChartLine({ points, maxValue }: { points: { label: string; value: number }[]; maxValue: number }) {
+function ChartLine({ points, maxValue }: { points: ChartDatum[]; maxValue: number }) {
   const width = 100
   const height = 100
   const step = points.length > 1 ? width / (points.length - 1) : 0
@@ -307,13 +331,14 @@ function ChartLine({ points, maxValue }: { points: { label: string; value: numbe
     return { x, y, point }
   })
   const path = coords.map((coord, index) => `${index === 0 ? 'M' : 'L'}${coord.x},${coord.y}`).join(' ')
+  const stroke = points.find((point) => point.color)?.color ?? 'var(--studio-violet)'
 
   return (
     <div className="generated-chart-line">
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Gráfico de línea">
-        <path d={path} fill="none" stroke="var(--studio-violet)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        <path d={path} fill="none" stroke={stroke} strokeWidth={2} vectorEffect="non-scaling-stroke" />
         {coords.map((coord, index) => (
-          <circle key={index} cx={coord.x} cy={coord.y} r={2} fill="var(--studio-violet)" />
+          <circle key={index} cx={coord.x} cy={coord.y} r={2} fill={stroke} />
         ))}
       </svg>
       <div className="generated-chart-line-labels">
@@ -325,14 +350,14 @@ function ChartLine({ points, maxValue }: { points: { label: string; value: numbe
   )
 }
 
-function ChartPie({ points }: { points: { label: string; value: number }[] }) {
+function ChartPie({ points }: { points: ChartDatum[] }) {
   const total = points.reduce((sum, point) => sum + point.value, 0) || 1
   let cursor = 0
   const slices = points.map((point, index) => {
     const fraction = point.value / total
     const start = cursor
     cursor += fraction
-    return { ...point, start, end: cursor, color: CHART_COLORS[index % CHART_COLORS.length] }
+    return { ...point, start, end: cursor, color: point.color ?? CHART_COLORS[index % CHART_COLORS.length] }
   })
   const gradient = slices
     .map((slice) => `${slice.color} ${(slice.start * 100).toFixed(2)}% ${(slice.end * 100).toFixed(2)}%`)
@@ -386,6 +411,7 @@ function StudioTable({ props }: { props: LooseObject }) {
 
 function StudioProgress({ props }: { props: LooseObject }) {
   const value = Math.min(100, Math.max(0, typeof props.value === 'number' ? props.value : Number(props.value) || 0))
+  const color = hexColor(props.color)
   return (
     <section className={`generated-card generated-progress emphasis-${stringValue(props.emphasis) ?? 'normal'}`}>
       <div className="generated-progress-head">
@@ -393,7 +419,10 @@ function StudioProgress({ props }: { props: LooseObject }) {
         <strong>{Math.round(value)}%</strong>
       </div>
       <div className="generated-progress-track">
-        <div className="generated-progress-fill" style={{ width: `${value}%` }} />
+        <div
+          className="generated-progress-fill"
+          style={{ width: `${value}%`, ...(color ? { background: color } : null) }}
+        />
       </div>
       {stringValue(props.supportingText) ? <p>{stringValue(props.supportingText)}</p> : null}
     </section>
@@ -408,10 +437,12 @@ function StudioTags({ props }: { props: LooseObject }) {
       <div className="generated-tags-list">
         {items.map((item, index) => {
           const entry = objectValue(item) ?? {}
+          const color = hexColor(entry.color)
           return (
             <span
               key={`${stringValue(entry.label) ?? index}`}
               className={`generated-tag is-${stringValue(entry.tone) ?? 'normal'}`}
+              style={color ? { background: color, color: '#fff' } : undefined}
             >
               {stringValue(entry.label)}
             </span>
@@ -449,7 +480,7 @@ function StudioNode({ node }: { node: unknown }) {
   const props = objectValue(record.props) ?? {}
 
   switch (stringValue(record.type)) {
-    case 'page': return <StudioPage node={record} />
+    case 'page': return <StudioPage node={record} props={props} />
     case 'section': return <StudioSection node={record} props={props} />
     case 'button': return <StudioButton props={props} />
     case 'text': return <StudioText props={props} />
