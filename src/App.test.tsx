@@ -21,7 +21,7 @@ describe('API-only UI studio', () => {
     expect(screen.getByLabelText('Playground vacío')).toBeEmptyDOMElement()
     expect(screen.getByRole('link', { name: 'Kernel Panic Studio, inicio' })).toHaveTextContent('Kernel Panic')
     expect(screen.getByRole('heading', { name: 'Iteration tree' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Backend output' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Orchestrator console' })).toBeInTheDocument()
     expect(screen.queryByText('Sin contratos runtime')).not.toBeInTheDocument()
     expect(screen.queryByText(/POST \/studio\/generate/)).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Agent trace' })).not.toBeInTheDocument()

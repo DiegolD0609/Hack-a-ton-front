@@ -89,8 +89,30 @@ export default function IterationTree({ iterations, selectedId, onSelect }: Iter
   const rootPosition = positions.get(null) as NodePosition
 
   useEffect(() => {
-    const selectedNode = scrollRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-    selectedNode?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    const scrollContainer = scrollRef.current
+    const selectedNode = scrollContainer?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!scrollContainer || !selectedNode) return
+
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const nodeRect = selectedNode.getBoundingClientRect()
+    const left = scrollContainer.scrollLeft
+      + nodeRect.left
+      - containerRect.left
+      - (containerRect.width - nodeRect.width) / 2
+    const top = scrollContainer.scrollTop
+      + nodeRect.top
+      - containerRect.top
+      - (containerRect.height - nodeRect.height) / 2
+
+    const nextLeft = Math.max(0, left)
+    const nextTop = Math.max(0, top)
+
+    if (typeof scrollContainer.scrollTo === 'function') {
+      scrollContainer.scrollTo({ behavior: 'smooth', left: nextLeft, top: nextTop })
+    } else {
+      scrollContainer.scrollLeft = nextLeft
+      scrollContainer.scrollTop = nextTop
+    }
   }, [iterations.length, selectedId])
 
   return (
