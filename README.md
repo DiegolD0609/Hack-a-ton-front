@@ -20,6 +20,10 @@ código dormido, no como una pantalla alcanzable.
 Si vas a tocar algo del producto, es Studio (`src/pages/Studio.tsx`,
 `src/studio/`, `src/components/studio/`).
 
+Diagrama de arquitectura completo (los dos repos, vivo vs. dormido, dónde
+vive cada tabla) en
+[`Hack-a-ton-end/architecture.svg`](https://raw.githubusercontent.com/KernelPanic04/Hack-a-ton-end/dev/architecture.svg).
+
 ## Arranque rápido
 
 Requisitos: Node.js 22, npm 10, y el backend de Kernel Panic corriendo (ver
