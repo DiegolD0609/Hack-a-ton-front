@@ -1,6 +1,11 @@
 import Ajv, { type ErrorObject, type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
-import type { ServerEnvelope, UISpec, UINode } from '@/runtime/contracts'
+import type {
+  ServerEnvelope,
+  ServerMessageType,
+  UISpec,
+  UINode,
+} from '@/runtime/contracts'
 import serverEnvelopeSchema from '@/runtime/generated/server-envelope.schema.json'
 import uiSpecSchema from '@/runtime/generated/ui-spec.schema.json'
 
@@ -28,7 +33,38 @@ const ajv = new Ajv({
 addFormats(ajv)
 
 const validateUISpecSchema = ajv.compile(uiSpecSchema)
-const validateServerEnvelopeSchema = ajv.compile(serverEnvelopeSchema)
+
+type ServerEnvelopeDefinition =
+  | 'ProjectionEnvelope'
+  | 'UIUpdatedEnvelope'
+  | 'ActionAcceptedEnvelope'
+  | 'ActionRejectedEnvelope'
+  | 'ErrorEnvelope'
+
+const envelopeDefinitionByType = {
+  RUN_STARTED: 'ProjectionEnvelope',
+  STEP_STARTED: 'ProjectionEnvelope',
+  STEP_COMPLETED: 'ProjectionEnvelope',
+  STATE_UPDATED: 'ProjectionEnvelope',
+  UI_UPDATED: 'UIUpdatedEnvelope',
+  DECISION_REQUIRED: 'ProjectionEnvelope',
+  ACTION_ACCEPTED: 'ActionAcceptedEnvelope',
+  ACTION_REJECTED: 'ActionRejectedEnvelope',
+  RUN_PAUSED: 'ProjectionEnvelope',
+  RUN_RESUMED: 'ProjectionEnvelope',
+  RUN_COMPLETED: 'ProjectionEnvelope',
+  ERROR: 'ErrorEnvelope',
+} satisfies Record<ServerMessageType, ServerEnvelopeDefinition>
+
+const serverEnvelopeValidators = Object.fromEntries(
+  Object.entries(envelopeDefinitionByType).map(([type, definition]) => [
+    type,
+    ajv.compile({
+      $defs: serverEnvelopeSchema.$defs,
+      $ref: `#/$defs/${definition}`,
+    }),
+  ]),
+) as Record<ServerMessageType, ValidateFunction>
 
 const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   page: 'PageProps',
@@ -66,13 +102,27 @@ function formatErrors(errors: ErrorObject[] | null | undefined): string[] {
     return ['El mensaje no cumple el contrato runtime.']
   }
 
-  const visibleErrors = errors.slice(0, 8).map((error) => {
-    const path = error.instancePath || '/'
-    return `${path}: ${error.message ?? 'valor inválido'}`
+  const formattedErrors = errors.map((error) => {
+    const path = error.instancePath || ''
+    if (error.keyword === 'additionalProperties') {
+      const property = String(error.params.additionalProperty)
+        .replaceAll('~', '~0')
+        .replaceAll('/', '~1')
+      return `${path}/${property}: propiedad no admitida por el contrato`
+    }
+    if (error.keyword === 'required') {
+      const property = String(error.params.missingProperty)
+        .replaceAll('~', '~0')
+        .replaceAll('/', '~1')
+      return `${path}/${property}: propiedad requerida`
+    }
+    return `${path || '/'}: ${error.message ?? 'valor inválido'}`
   })
+  const uniqueErrors = [...new Set(formattedErrors)]
+  const visibleErrors = uniqueErrors.slice(0, 8)
 
-  if (errors.length > visibleErrors.length) {
-    visibleErrors.push(`… y ${errors.length - visibleErrors.length} errores adicionales`)
+  if (uniqueErrors.length > visibleErrors.length) {
+    visibleErrors.push(`… y ${uniqueErrors.length - visibleErrors.length} errores adicionales`)
   }
 
   return visibleErrors
@@ -249,8 +299,21 @@ function serverEnvelopeInvariantErrors(envelope: ServerEnvelope): string[] {
 export function validateServerEnvelope(input: unknown): ValidationResult<ServerEnvelope> {
   const candidate = cloneJson(input)
 
-  if (!validateServerEnvelopeSchema(candidate)) {
-    return { ok: false, errors: formatErrors(validateServerEnvelopeSchema.errors) }
+  if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return { ok: false, errors: ['/: el mensaje debe ser un objeto'] }
+  }
+
+  const type = (candidate as { type?: unknown }).type
+  if (typeof type !== 'string') {
+    return { ok: false, errors: ['/type: propiedad requerida'] }
+  }
+  if (!Object.hasOwn(envelopeDefinitionByType, type)) {
+    return { ok: false, errors: [`/type: tipo de mensaje no permitido (${type})`] }
+  }
+
+  const validateEnvelope = serverEnvelopeValidators[type as ServerMessageType]
+  if (!validateEnvelope(candidate)) {
+    return { ok: false, errors: formatErrors(validateEnvelope.errors) }
   }
 
   const envelope = candidate as ServerEnvelope

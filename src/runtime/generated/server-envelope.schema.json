@@ -1454,6 +1454,21 @@
           "title": "Operation",
           "type": "object"
         },
+        "operationId": {
+          "anyOf": [
+            {
+              "maxLength": 131,
+              "minLength": 4,
+              "pattern": "^op_[a-z0-9][a-z0-9_-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operationid"
+        },
         "pendingDecision": {
           "anyOf": [
             {

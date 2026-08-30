@@ -18,7 +18,7 @@ import useRunSocket, {
   type RuntimeSocket,
   type SnapshotFetcher,
 } from '@/runtime/useRunSocket'
-import { validateUISpec } from '@/runtime/validation'
+import { validateServerEnvelope, validateUISpec } from '@/runtime/validation'
 
 const RUN_ID = 'run_demo_skeleton' as RunId
 const TIMESTAMP = '2026-08-29T18:00:00.000Z'
@@ -48,6 +48,7 @@ function uiUpdatedEnvelope(): UIUpdatedEnvelope {
   const projection: RunProjection = {
     schemaVersion: '1',
     runId: RUN_ID,
+    operationId: 'op_demo_skeleton',
     workflowId: 'wf_logistics_main',
     workflowVersion: 1,
     stateVersion: 1,
@@ -646,6 +647,36 @@ describe('run reducer', () => {
       expect(state.projection?.stateVersion).toBe(sequence)
       expect(state.lastSequence).toBe(sequence)
     })
+  })
+})
+
+describe('server envelope validation', () => {
+  it('accepts the current backend projection with operationId', () => {
+    const result = validateServerEnvelope(uiUpdatedEnvelope())
+
+    expect(result.ok).toBe(true)
+  })
+
+  it('reports only errors from the envelope type that was received', () => {
+    const envelope = uiUpdatedEnvelope()
+    const result = validateServerEnvelope({
+      ...envelope,
+      payload: {
+        ...envelope.payload,
+        projection: {
+          ...envelope.payload.projection,
+          unexpectedField: true,
+        },
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.errors).toEqual([
+        '/payload/projection/unexpectedField: propiedad no admitida por el contrato',
+      ])
+      expect(result.errors.join(' ')).not.toMatch(/idempotencyKey|decisionId|actionId/)
+    }
   })
 })
 
