@@ -358,6 +358,61 @@ describe('runtime renderer', () => {
     expect(screen.getByText('Mejoró')).toBeInTheDocument()
   })
 
+  it('validates and renders the v1.1 offline map node', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') {
+      throw new Error('fixture must contain a section')
+    }
+    section.children.unshift({
+      id: 'ui_operation_map',
+      type: 'map',
+      props: {
+        waypoints: [
+          { id: 'origin', label: 'Origen', lat: 10.2, lon: 107.1, kind: 'origin' },
+          { id: 'stop', label: 'Escala', lat: 35.1, lon: 129.0, kind: 'stop' },
+          { id: 'destination', label: 'Destino', lat: 19.1, lon: -104.3, kind: 'destination' },
+        ],
+        marker: { lat: 18, lon: 135, label: 'Posición actual' },
+        segments: [
+          { from: 'origin', to: 'stop', status: 'active' },
+          { from: 'stop', to: 'destination', status: 'diverted' },
+        ],
+        emphasis: 'warning',
+      },
+    })
+
+    const result = validateUISpec(uiSpec)
+    expect(result.ok).toBe(true)
+    render(<Renderer uiSpec={uiSpec} />)
+
+    expect(screen.getByRole('img', { name: /Mapa de ruta/ })).toBeInTheDocument()
+    expect(screen.getByText('Origen → Destino')).toBeInTheDocument()
+    expect(screen.getByText('Posición: Posición actual')).toBeInTheDocument()
+  })
+
+  it('rejects map segments that reference unknown waypoints', () => {
+    const uiSpec = uiUpdatedEnvelope().payload.uiSpec
+    const section = uiSpec.layout.children[0]
+    if (section.type !== 'section') throw new Error('fixture must contain a section')
+    section.children.unshift({
+      id: 'ui_invalid_map',
+      type: 'map',
+      props: {
+        waypoints: [
+          { id: 'origin', label: 'Origen', lat: 0, lon: 0, kind: 'origin' },
+          { id: 'destination', label: 'Destino', lat: 1, lon: 1, kind: 'destination' },
+        ],
+        segments: [{ from: 'origin', to: 'missing', status: 'planned' }],
+        emphasis: 'normal',
+      },
+    })
+
+    const result = validateUISpec(uiSpec)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors.join(' ')).toMatch(/unknown waypoint/i)
+  })
+
   it('shows generatedBy, reason, stateVersion, and live JSON in the inspector', async () => {
     const user = userEvent.setup()
     const uiSpec = uiUpdatedEnvelope().payload.uiSpec

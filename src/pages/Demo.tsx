@@ -1,5 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import AssistantPanel from '@/assistant/AssistantPanel'
 import { appConfig } from '@/config/app'
+import WorkflowEditor from '@/editor/WorkflowEditor'
+import RunHistoryPanel from '@/history/RunHistoryPanel'
+import {
+  loadRunHistory,
+  rememberRunProjection,
+  type RunHistoryEntry,
+} from '@/history/runHistory'
 import UISpecInspector from '@/inspector/UISpecInspector'
 import Renderer from '@/runtime/Renderer'
 import { ID_PATTERNS, type RunId, type RunProjection } from '@/runtime/contracts'
@@ -58,11 +66,13 @@ async function requestProjection(
 
 export default function Demo() {
   const [runId, setRunId] = useState<RunId | null>(requestedRunId)
+  const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>(loadRunHistory)
   const [requestState, setRequestState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
   const token = import.meta.env.VITE_DEMO_TOKEN || 'replace-with-a-shared-demo-token'
   const pollingEnabled = import.meta.env.VITE_RUNTIME_POLLING === 'true'
+  const assistantEnabled = import.meta.env.VITE_ASSISTANT_ENABLED !== 'false'
   const runtime = useRunSocket({
     runId: runId ?? WAITING_RUN_ID,
     apiUrl,
@@ -71,13 +81,29 @@ export default function Demo() {
     pollingEnabled,
   })
 
+  const activateRun = (nextRunId: RunId) => {
+    setRunId(nextRunId)
+    setRequestState('sent')
+    setRequestError(null)
+    const url = new URL(window.location.href)
+    url.pathname = appConfig.routes.demo
+    url.searchParams.set('runId', nextRunId)
+    window.history.replaceState({}, '', url)
+  }
+
+  useEffect(() => {
+    const projection = runtime.projection
+    if (!projection) return
+    setRunHistory((current) => rememberRunProjection(projection, current))
+  }, [runtime.projection])
+
   const performRequest = async (path: string, body?: Record<string, unknown>) => {
     setRequestState('loading')
     setRequestError(null)
     try {
       const projection = await requestProjection(apiUrl, path, body)
-      setRunId(projection.runId)
-      setRequestState('sent')
+      setRunHistory((current) => rememberRunProjection(projection, current))
+      activateRun(projection.runId)
     } catch (error) {
       setRequestState('error')
       setRequestError(error instanceof Error ? error.message : 'No se pudo avanzar la demo.')
@@ -88,6 +114,10 @@ export default function Demo() {
     setRunId(null)
     setRequestState('idle')
     setRequestError(null)
+    const url = new URL(window.location.href)
+    url.pathname = appConfig.routes.demo
+    url.search = ''
+    window.history.replaceState({}, '', url)
   }
 
   const canAdvance =
@@ -127,7 +157,7 @@ export default function Demo() {
       </header>
 
       <main className="page-container flex-1 py-10 sm:py-16">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-6 border-b border-stroke pb-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="eyebrow">
@@ -212,32 +242,95 @@ export default function Demo() {
             </div>
           ) : null}
 
-          <section className="surface-card mt-8 min-h-80 p-5 sm:p-8" aria-live="polite">
-            {runtime.uiSpec ? (
-              <div
-                key={`${runtime.uiSpec.stateVersion}-${runtime.uiSpec.generatedBy}`}
-                className="runtime-payload"
-                data-testid="runtime-payload"
-              >
-                <Renderer
-                  uiSpec={runtime.uiSpec}
-                  onAction={runtime.submitAction}
-                  decisionFeedback={runtime.decisionFeedback}
+          <section className="surface-card mt-8 p-5" aria-labelledby="demo-moments-title">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="eyebrow">Caso oficial · M1–M3</p>
+                <h2 id="demo-moments-title" className="mt-2 text-2xl">Cada momento crea un run nuevo.</h2>
+                <p className="mt-2 text-sm text-content-muted">
+                  Los tres runs comparten operationId; la historia conserva y permite reabrir cada interfaz.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3].map((moment) => (
+                  <button
+                    key={moment}
+                    type="button"
+                    className={moment === 3 ? 'btn-primary' : 'btn-secondary'}
+                    disabled={requestState === 'loading'}
+                    onClick={() => void performRequest(`/demo/moment/${moment}`)}
+                  >
+                    Momento {moment}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <div className="mt-6">
+            <RunHistoryPanel
+              entries={runHistory}
+              projection={runtime.projection}
+              currentRunId={runId}
+              onSelectRun={activateRun}
+            />
+          </div>
+
+          {runId ? (
+            <details className="surface-card mt-6 overflow-hidden">
+              <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-content marker:text-signal">
+                Editor del trial · fallback garantizado sin chat
+              </summary>
+              <div className="border-t border-stroke px-5 sm:px-7">
+                <WorkflowEditor
+                  key={runId}
+                  embedded
+                  sourceRunId={runId}
+                  onRunCreated={(createdRunId) => activateRun(createdRunId as RunId)}
                 />
               </div>
-            ) : (
-              <div className="flex min-h-64 items-center justify-center text-center">
-                <div className="max-w-lg">
-                  <p className="eyebrow">Esperando UISpec</p>
-                  <h2 className="mt-3 text-2xl">El renderer está listo.</h2>
-                  <p className="mt-3 text-content-muted">
-                    Usa el golden path para recorrer los cinco pasos o abre el skeleton H3 para ir
-                    directamente a una decisión humana.
-                  </p>
+            </details>
+          ) : null}
+
+          <div className={`mt-6 grid items-start gap-6 ${assistantEnabled && runId ? 'lg:grid-cols-[minmax(0,1fr)_21rem]' : ''}`}>
+            <section className="surface-card min-h-80 p-5 sm:p-8" aria-live="polite">
+              {runtime.uiSpec ? (
+                <div
+                  key={`${runtime.uiSpec.stateVersion}-${runtime.uiSpec.generatedBy}`}
+                  className="runtime-payload"
+                  data-testid="runtime-payload"
+                >
+                  <Renderer
+                    uiSpec={runtime.uiSpec}
+                    onAction={runtime.submitAction}
+                    decisionFeedback={runtime.decisionFeedback}
+                  />
                 </div>
-              </div>
-            )}
-          </section>
+              ) : (
+                <div className="flex min-h-64 items-center justify-center text-center">
+                  <div className="max-w-lg">
+                    <p className="eyebrow">Esperando UISpec</p>
+                    <h2 className="mt-3 text-2xl">El renderer está listo.</h2>
+                    <p className="mt-3 text-content-muted">
+                      Usa los momentos 1–3 para demostrar runs sucesivos, o el golden path para la compatibilidad v1.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {assistantEnabled && runId ? (
+              <AssistantPanel
+                key={runId}
+                apiUrl={apiUrl}
+                runId={runId}
+                projection={runtime.projection}
+                editorUrl={editorUrl}
+                onAction={runtime.submitAction}
+                onRunCreated={activateRun}
+              />
+            ) : null}
+          </div>
 
           <p className="mt-4 text-xs text-content-muted">
             Mensajes rechazados por contrato en esta sesión: {runtime.invalidMessageCount}

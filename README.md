@@ -9,10 +9,12 @@ humana vuelve al agente como un `ActionEvent` tipado.
 El repositorio contiene únicamente la superficie definida por el roadmap:
 
 - renderer recursivo y fallback por nodo;
-- registry congelado de nueve componentes;
+- registry v1.1 de diez componentes, incluido un mapa SVG offline;
 - reducer, WebSocket, reconexión por snapshot y fallback de polling;
 - inspector de `UISpec` con `generatedBy`, `reason` y `stateVersion`;
 - editor de workflow que genera pasos, muestra el diff y ejecuta `v(n+1)`;
+- historia persistente de runs por operación y controles M1–M3;
+- panel de Ari con recomendaciones acotadas por policy y `proposedStep`;
 - design tokens normal, warning y critical;
 - landing de presentación con un único destino funcional: la demo;
 - shell de demo para el walking skeleton y el golden path.
@@ -41,6 +43,7 @@ Abre `http://localhost:5173/landing` para la presentación,
 VITE_API_URL=/api
 VITE_DEMO_TOKEN=replace-with-a-shared-demo-token
 VITE_RUNTIME_POLLING=true
+VITE_ASSISTANT_ENABLED=true
 BACKEND_URL=http://localhost:8000
 ```
 
@@ -54,12 +57,21 @@ producción.
 `src/runtime/contracts.ts` refleja manualmente los contratos Pydantic del
 backend y conserva `schemaVersion = "1"`. Los JSON Schema generados viven en
 `src/runtime/generated/` y AJV valida cada envelope antes de pasarlo al reducer.
-Estos artefactos no se editan de forma unilateral.
+Los JSON Schema no se editan de forma unilateral. Por la restricción explícita
+de no tocar backend en esta entrega, la adenda TypeScript v1.1 queda adelantada
+y documentada para que el equipo backend la espeje y regenere los artefactos.
 
-El registry admite exactamente `page`, `section`, `metric`, `alert`,
-`timeline`, `keyValue`, `compare`, `decisionPanel` y `step`. Un tipo desconocido
-o props inválidas se aíslan con `GenericStepCard`; nunca provocan una pantalla
-blanca.
+El registry admite `page`, `section`, `metric`, `alert`, `timeline`, `keyValue`,
+`compare`, `decisionPanel`, `step` y `map`. Un tipo desconocido o props inválidas
+se aíslan con `GenericStepCard`; nunca provocan una pantalla blanca. `map` usa
+SVG inline y no requiere tiles ni red externa. Hasta que backend regenere los
+schemas, `schemaExtensions.ts` amplía en memoria los artefactos v1 sin editarlos
+a mano.
+
+Los endpoints y payloads que backend debe implementar para M1–M4 están fijados
+en [`docs/BACKEND_INTEGRATION_V2.md`](docs/BACKEND_INTEGRATION_V2.md).
+La matriz completa de alcance y dependencias frontend está en
+[`docs/FRONTEND_ROADMAP_V2.md`](docs/FRONTEND_ROADMAP_V2.md).
 
 La demo inicia `POST /runs`, avanza con `POST /demo/advance` y mantiene el canal:
 
@@ -107,13 +119,19 @@ Si se entra desde un run activo, `/editor?runId=...` reutiliza su proyección
 como baseline. Sin `runId`, la primera confirmación crea un run base para
 identificar el workflow vigente.
 
+El mismo formulario aparece plegado dentro de `/demo` como fallback del trial.
+Ari puede proponer el `StepDefinition`; el botón del panel crea la nueva versión
+y abre su run por los mismos endpoints del editor manual.
+
 ## Estructura
 
 ```text
 src/
-├── components/         presentación y nueve primitivas del registry
+├── assistant/          chat, chips policy-safe y proposedStep
+├── components/         presentación y diez primitivas del registry
 ├── config/             identidad y rutas públicas mínimas
 ├── editor/             formulario, DTO HTTP, diff y creación de versiones
+├── history/            historia local de runs por operationId
 ├── inspector/          inspector vivo de UISpec
 ├── pages/              landing y shell del walking skeleton/golden path
 ├── runtime/            contratos, schemas, renderer, reducer y socket

@@ -349,6 +349,25 @@
   }
 }
 
+@keyframes route-marker-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(1.35);
+  }
+}
+
+.route-marker-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: route-marker-pulse 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -356,6 +375,10 @@
 
   .menu-popover {
     transition-duration: 0.01ms;
+  }
+
+  .route-marker-pulse {
+    animation: none;
   }
 
   .pipeline-reveal {

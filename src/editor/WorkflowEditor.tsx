@@ -12,6 +12,8 @@ import {
 
 interface WorkflowEditorProps {
   onRunCreated?: (runId: string) => void
+  embedded?: boolean
+  sourceRunId?: string | null
 }
 
 function linkedRunId(): string | null {
@@ -31,7 +33,11 @@ function baselineFromProjection(projection: {
   }
 }
 
-export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
+export default function WorkflowEditor({
+  onRunCreated,
+  embedded = false,
+  sourceRunId: sourceRunIdOverride,
+}: WorkflowEditorProps) {
   const [form, setForm] = useState<WorkflowStepForm>(EMPTY_STEP_FORM)
   const [inputPath, setInputPath] = useState('')
   const [baseline, setBaseline] = useState<WorkflowBaseline | null>(null)
@@ -39,7 +45,8 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
   const [status, setStatus] = useState<'idle' | 'loading-base' | 'creating' | 'running'>('idle')
   const [error, setError] = useState<string | null>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-  const sourceRunId = useMemo(linkedRunId, [])
+  const linkedSourceRunId = useMemo(linkedRunId, [])
+  const sourceRunId = sourceRunIdOverride ?? linkedSourceRunId
   const step = useMemo(() => buildStepDefinition(form), [form])
   const locked = createdVersion !== null || status !== 'idle'
   const formValid = form.title.trim().length > 0 && form.objective.trim().length > 0
@@ -162,8 +169,8 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
   }
 
   return (
-    <div className="app-shell flex flex-col">
-      <header className="border-b border-stroke bg-surface">
+    <div className={embedded ? 'bg-surface' : 'app-shell flex flex-col'}>
+      {!embedded ? <header className="border-b border-stroke bg-surface">
         <div className="page-container flex items-center justify-between gap-4 py-4">
           <a href={appConfig.routes.landing} className="font-display text-xl">
             {appConfig.name}
@@ -172,14 +179,14 @@ export default function WorkflowEditor({ onRunCreated }: WorkflowEditorProps) {
             Volver al runtime
           </a>
         </div>
-      </header>
+      </header> : null}
 
-      <main className="page-container flex-1 py-10 sm:py-14">
-        <div className="mx-auto max-w-6xl">
+      <main className={embedded ? 'py-6' : 'page-container flex-1 py-10 sm:py-14'}>
+        <div className={embedded ? '' : 'mx-auto max-w-6xl'}>
           <div className="max-w-3xl">
-            <p className="eyebrow">Phase 4 · workflow editor</p>
-            <h1 className="mt-3 text-4xl leading-tight sm:text-5xl">Inventa un paso en runtime.</h1>
-            <p className="mt-4 text-lg text-content-muted">
+            <p className="eyebrow">{embedded ? 'Plan B del trial' : 'Phase 4 · workflow editor'}</p>
+            <h1 className={`mt-3 leading-tight ${embedded ? 'text-3xl' : 'text-4xl sm:text-5xl'}`}>Inventa un paso en runtime.</h1>
+            <p className={`mt-4 text-content-muted ${embedded ? 'text-base' : 'text-lg'}`}>
               El formulario genera un objeto ejecutable, crea una versión inmutable y abre un run
               nuevo sin reiniciar el backend.
             </p>

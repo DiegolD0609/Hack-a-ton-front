@@ -1,5 +1,5 @@
 /**
- * Frozen v1 wire contracts.
+ * Frozen v1 wire contracts plus the approved v1.1 frontend additions.
  *
  * Pydantic in Hack-a-ton-end/app/schemas/contracts.py is the executable
  * authority. Keep this reviewed mirror, the Phase 0 docs, and backend tests in
@@ -18,6 +18,7 @@ export const COMPONENT_TYPES = [
   'compare',
   'decisionPanel',
   'step',
+  'map',
 ] as const
 
 export const SERVER_MESSAGE_TYPES = [
@@ -125,6 +126,8 @@ export interface RunProjection {
   recentEvents: RunEvent[]
   pendingDecision?: DecisionRequest | null
   availableActions: ActionDefinition[]
+  /** Shared by successive runs of the same operation in the v1.1 demo contract. */
+  operationId?: string | null
 }
 
 export interface PageProps {
@@ -222,6 +225,33 @@ export interface StepProps {
   emphasis: Emphasis
 }
 
+export interface MapWaypoint {
+  id: string
+  label: string
+  lat: number
+  lon: number
+  kind: 'origin' | 'stop' | 'destination'
+}
+
+export interface MapMarker {
+  lat: number
+  lon: number
+  label: string
+}
+
+export interface MapSegment {
+  from: string
+  to: string
+  status: 'planned' | 'active' | 'diverted'
+}
+
+export interface MapProps {
+  waypoints: MapWaypoint[]
+  marker?: MapMarker | null
+  segments: MapSegment[]
+  emphasis: Emphasis
+}
+
 export interface PageNode {
   id: UINodeId
   type: 'page'
@@ -278,6 +308,12 @@ export interface StepNode {
   props: StepProps
 }
 
+export interface MapNode {
+  id: UINodeId
+  type: 'map'
+  props: MapProps
+}
+
 export type UINode =
   | PageNode
   | SectionNode
@@ -288,6 +324,7 @@ export type UINode =
   | CompareNode
   | DecisionPanelNode
   | StepNode
+  | MapNode
 
 export interface UISpec {
   schemaVersion: SchemaVersion

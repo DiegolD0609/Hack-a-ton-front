@@ -3,6 +3,7 @@ import addFormats from 'ajv-formats'
 import type { ServerEnvelope, UISpec, UINode } from '@/runtime/contracts'
 import serverEnvelopeSchema from '@/runtime/generated/server-envelope.schema.json'
 import uiSpecSchema from '@/runtime/generated/ui-spec.schema.json'
+import { withFrontendV11Extensions } from '@/runtime/schemaExtensions'
 
 export type RegisteredComponentType =
   | 'page'
@@ -14,6 +15,7 @@ export type RegisteredComponentType =
   | 'compare'
   | 'decisionPanel'
   | 'step'
+  | 'map'
 
 export type ValidationResult<T> =
   | { ok: true; value: T }
@@ -26,8 +28,10 @@ const ajv = new Ajv({
 
 addFormats(ajv)
 
-const validateUISpecSchema = ajv.compile(uiSpecSchema)
-const validateServerEnvelopeSchema = ajv.compile(serverEnvelopeSchema)
+const extendedUISpecSchema = withFrontendV11Extensions(uiSpecSchema)
+const extendedServerEnvelopeSchema = withFrontendV11Extensions(serverEnvelopeSchema)
+const validateUISpecSchema = ajv.compile(extendedUISpecSchema)
+const validateServerEnvelopeSchema = ajv.compile(extendedServerEnvelopeSchema)
 
 const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   page: 'PageProps',
@@ -39,13 +43,14 @@ const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   compare: 'CompareProps',
   decisionPanel: 'DecisionPanelProps',
   step: 'StepProps',
+  map: 'MapProps',
 }
 
 const componentPropsValidators = Object.fromEntries(
   Object.entries(propsDefinitionByType).map(([type, definition]) => [
     type,
     ajv.compile({
-      $defs: uiSpecSchema.$defs,
+      $defs: extendedUISpecSchema.$defs,
       $ref: `#/$defs/${definition}`,
     }),
   ]),
@@ -104,6 +109,9 @@ function hydrateDefaultFactories(uiSpec: UISpec) {
       })
     } else if (node.type === 'step') {
       node.props.emphasis ??= 'normal'
+    } else if (node.type === 'map') {
+      node.props.marker ??= null
+      node.props.emphasis ??= 'normal'
     }
     if (node.type === 'page' || node.type === 'section') {
       node.children.forEach(visit)
@@ -146,6 +154,17 @@ function uiSpecInvariantErrors(uiSpec: UISpec): string[] {
       }
       if (node.props.status === 'rejected' && !node.props.errorMessage) {
         errors.push(`/layout/${node.id}: rejected status requires errorMessage`)
+      }
+    } else if (node.type === 'map') {
+      const waypointIds = node.props.waypoints.map((waypoint) => waypoint.id)
+      const waypointSet = new Set(waypointIds)
+      if (waypointSet.size !== waypointIds.length) {
+        errors.push(`/layout/${node.id}: map waypoint ids must be unique`)
+      }
+      for (const segment of node.props.segments) {
+        if (!waypointSet.has(segment.from) || !waypointSet.has(segment.to)) {
+          errors.push(`/layout/${node.id}: map segment references an unknown waypoint`)
+        }
       }
     }
 
