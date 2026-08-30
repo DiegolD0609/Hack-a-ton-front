@@ -1,5 +1,10 @@
 export type StudioRequest = (url: string, init: RequestInit) => Promise<Response>
 
+export interface StudioGenerateOptions {
+  conversationId?: string | null
+  name?: string | null
+}
+
 export class StudioApiError extends Error {
   status: number
 
@@ -34,7 +39,7 @@ async function responseMessage(response: Response): Promise<string> {
 export async function generateStudioUI(
   apiUrl: string,
   prompt: string,
-  conversationId: string | null = null,
+  options: StudioGenerateOptions = {},
   request: StudioRequest = fetch,
 ): Promise<unknown> {
   const exactPrompt = prompt.trim()
@@ -43,8 +48,10 @@ export async function generateStudioUI(
   const body: Record<string, unknown> = {
     prompt: exactPrompt,
   }
-  if (conversationId) {
-    body.conversationId = conversationId
+  if (options.conversationId) {
+    body.conversationId = options.conversationId
+  } else if (options.name?.trim()) {
+    body.name = options.name.trim()
   }
 
   const response = await request(apiEndpoint(apiUrl, '/studio/generate'), {
@@ -53,6 +60,31 @@ export async function generateStudioUI(
     body: JSON.stringify(body),
   })
 
+  if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
+  return response.json() as Promise<unknown>
+}
+
+export async function listStudioProjects(
+  apiUrl: string,
+  request: StudioRequest = fetch,
+): Promise<unknown> {
+  const response = await request(apiEndpoint(apiUrl, '/studio/projects'), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
+  return response.json() as Promise<unknown>
+}
+
+export async function getStudioProject(
+  apiUrl: string,
+  projectId: string,
+  request: StudioRequest = fetch,
+): Promise<unknown> {
+  const response = await request(apiEndpoint(apiUrl, `/studio/projects/${encodeURIComponent(projectId)}`), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
   if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
   return response.json() as Promise<unknown>
 }

@@ -1,6 +1,4 @@
-import type { IterationStatus, IterationTreeNode } from '@/components/studio/IterationTree'
-
-export const STUDIO_WORKSPACE_KEY = 'kernel-panic.studio.workspace.v1'
+import type { IterationTreeNode } from '@/components/studio/IterationTree'
 
 export interface StudioProjectIteration extends IterationTreeNode {
   conversationId: string | null
@@ -14,12 +12,22 @@ export interface StudioProject {
   iterations: StudioProjectIteration[]
   selectedId: number | null
   error: string | null
+  isDraft: boolean
+  isLoaded: boolean
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface StudioWorkspace {
-  version: 1
   activeProjectId: string
   projects: StudioProject[]
+}
+
+export interface StudioProjectSummary {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
 }
 
 type LooseObject = Record<string, unknown>
@@ -30,104 +38,117 @@ function objectValue(value: unknown): LooseObject | null {
     : null
 }
 
-function projectId(): string {
-  return `project_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function draftId(): string {
+  return `draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function createStudioProject(name: string): StudioProject {
   return {
-    id: projectId(),
+    id: draftId(),
     name: name.trim() || 'Untitled UI project',
     prompt: '',
     iterations: [],
     selectedId: null,
     error: null,
+    isDraft: true,
+    isLoaded: true,
+    createdAt: null,
+    updatedAt: null,
   }
 }
 
 export function createStudioWorkspace(): StudioWorkspace {
   const project = createStudioProject('UI Project 1')
-  return { version: 1, activeProjectId: project.id, projects: [project] }
+  return { activeProjectId: project.id, projects: [project] }
 }
 
-function restoredStatus(value: unknown): IterationStatus | null {
-  return value === 'generating' || value === 'completed' || value === 'error' ? value : null
+export function studioProjectSummaries(payload: unknown): StudioProjectSummary[] {
+  if (!Array.isArray(payload)) return []
+  return payload.flatMap((value) => {
+    const project = objectValue(value)
+    const id = stringValue(project?.projectId)
+    const createdAt = stringValue(project?.createdAt)
+    const updatedAt = stringValue(project?.updatedAt)
+    if (!id || !createdAt || !updatedAt) return []
+    return [{
+      id,
+      name: stringValue(project?.name) ?? 'Untitled UI project',
+      createdAt,
+      updatedAt,
+    }]
+  })
 }
 
-function restoreIteration(value: unknown): StudioProjectIteration | null {
-  const iteration = objectValue(value)
-  const status = restoredStatus(iteration?.status)
-  if (
-    !iteration
-    || typeof iteration.id !== 'number'
-    || (iteration.parentId !== null && typeof iteration.parentId !== 'number')
-    || typeof iteration.prompt !== 'string'
-    || !status
-  ) return null
-
-  const interrupted = status === 'generating'
+export function projectFromSummary(summary: StudioProjectSummary): StudioProject {
   return {
-    id: iteration.id,
-    parentId: iteration.parentId as number | null,
-    prompt: iteration.prompt,
-    status: interrupted ? 'error' : status,
-    suggestion: interrupted
-      ? 'Generation interrupted by page reload.'
-      : typeof iteration.suggestion === 'string' ? iteration.suggestion : null,
-    conversationId: typeof iteration.conversationId === 'string' ? iteration.conversationId : null,
-    response: iteration.response ?? null,
+    id: summary.id,
+    name: summary.name,
+    prompt: '',
+    iterations: [],
+    selectedId: null,
+    error: null,
+    isDraft: false,
+    isLoaded: false,
+    createdAt: summary.createdAt,
+    updatedAt: summary.updatedAt,
   }
 }
 
-function restoreProject(value: unknown): StudioProject | null {
-  const project = objectValue(value)
-  if (!project || typeof project.id !== 'string' || typeof project.name !== 'string') return null
+export function studioProjectFromDetail(payload: unknown): StudioProject | null {
+  const project = objectValue(payload)
+  const id = stringValue(project?.projectId)
+  if (!id || !Array.isArray(project?.messages)) return null
 
-  const iterations = Array.isArray(project.iterations)
-    ? project.iterations.map(restoreIteration).filter((item): item is StudioProjectIteration => item !== null)
-    : []
-  const selectedId = typeof project.selectedId === 'number'
-    && iterations.some((iteration) => iteration.id === project.selectedId)
-    ? project.selectedId
-    : null
+  const iterations: StudioProjectIteration[] = []
+  let pendingPrompt: string | null = null
+  let parentId: number | null = null
+
+  for (const value of project.messages) {
+    const message = objectValue(value)
+    const role = stringValue(message?.role)
+    const content = stringValue(message?.content)
+    if (!role || !content) continue
+
+    if (role === 'user') {
+      pendingPrompt = content
+      continue
+    }
+    if (role !== 'assistant' || pendingPrompt === null) continue
+
+    const iterationId = iterations.length + 1
+    const layout = message?.layout ?? null
+    iterations.push({
+      id: iterationId,
+      parentId,
+      prompt: pendingPrompt,
+      status: 'completed',
+      suggestion: content,
+      conversationId: id,
+      response: {
+        conversationId: id,
+        generatedBy: 'history',
+        reason: content,
+        layout,
+      },
+    })
+    parentId = iterationId
+    pendingPrompt = null
+  }
 
   return {
-    id: project.id,
-    name: project.name || 'Untitled UI project',
-    prompt: typeof project.prompt === 'string' ? project.prompt.slice(0, 2000) : '',
+    id,
+    name: stringValue(project.name) ?? 'Untitled UI project',
+    prompt: '',
     iterations,
-    selectedId,
-    error: typeof project.error === 'string' ? project.error : null,
-  }
-}
-
-export function loadStudioWorkspace(storage: Storage = window.localStorage): StudioWorkspace {
-  try {
-    const raw = storage.getItem(STUDIO_WORKSPACE_KEY)
-    if (!raw) return createStudioWorkspace()
-
-    const stored = objectValue(JSON.parse(raw))
-    const projects = Array.isArray(stored?.projects)
-      ? stored.projects.map(restoreProject).filter((item): item is StudioProject => item !== null)
-      : []
-    if (!projects.length) return createStudioWorkspace()
-
-    const activeProjectId = typeof stored?.activeProjectId === 'string'
-      && projects.some((project) => project.id === stored.activeProjectId)
-      ? stored.activeProjectId
-      : projects[0].id
-
-    return { version: 1, activeProjectId, projects }
-  } catch {
-    return createStudioWorkspace()
-  }
-}
-
-export function saveStudioWorkspace(workspace: StudioWorkspace, storage: Storage = window.localStorage): boolean {
-  try {
-    storage.setItem(STUDIO_WORKSPACE_KEY, JSON.stringify(workspace))
-    return true
-  } catch {
-    return false
+    selectedId: iterations.at(-1)?.id ?? null,
+    error: null,
+    isDraft: false,
+    isLoaded: true,
+    createdAt: stringValue(project.createdAt),
+    updatedAt: stringValue(project.updatedAt),
   }
 }
