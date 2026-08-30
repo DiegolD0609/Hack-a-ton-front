@@ -22,10 +22,10 @@ interface NodePosition {
   y: number
 }
 
-const NODE_WIDTH = 180
-const NODE_HEIGHT = 94
-const COLUMN_GAP = 60
-const ROW_GAP = 116
+const NODE_WIDTH = 210
+const NODE_HEIGHT = 112
+const COLUMN_GAP = 64
+const ROW_GAP = 134
 const CANVAS_PADDING = 16
 
 function nodeSummary(node: IterationTreeNode): string {
@@ -45,6 +45,7 @@ function connectorPath(parent: NodePosition, child: NodePosition): string {
 export default function IterationTree({ iterations, selectedId, onSelect }: IterationTreeProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const selectedNode = iterations.find((iteration) => iteration.id === selectedId) ?? null
+  const newestId = iterations.reduce((max, iteration) => Math.max(max, iteration.id), 0)
   const childrenByParent = new Map<number | null, IterationTreeNode[]>()
 
   for (const iteration of iterations) {
@@ -164,7 +165,7 @@ export default function IterationTree({ iterations, selectedId, onSelect }: Iter
                 role="treeitem"
                 aria-level={position.depth + 1}
                 aria-selected={selectedId === iteration.id}
-                className={`studio-tree-node is-${iteration.status} ${selectedId === iteration.id ? 'is-selected' : ''}`}
+                className={`studio-tree-node studio-tree-appear is-${iteration.status} ${selectedId === iteration.id ? 'is-selected' : ''} ${iteration.id === newestId ? 'is-newest' : ''}`}
                 style={{ left: position.x, top: position.y - NODE_HEIGHT / 2 }}
                 onClick={() => onSelect(iteration.id)}
               >

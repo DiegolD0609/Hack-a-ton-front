@@ -2401,3 +2401,386 @@
     transition-duration: 0.01ms;
   }
 }
+
+/* ============================================================= *
+ *  Orchestrator console, feedback modal, enlarged tree & fades  *
+ *  (Studio "show how the LLM builds the UI" workspace refresh)   *
+ * ============================================================= */
+
+/* Wider sidebar + smaller playground so the tree and console lead. */
+.studio-workspace {
+  grid-template-columns: 356px minmax(0, 1fr);
+}
+
+.studio-main-grid {
+  grid-template-rows: auto auto;
+}
+
+.studio-canvas-panel {
+  min-height: 0;
+}
+
+.studio-canvas-panel .studio-browser-body {
+  min-height: 320px;
+  max-height: 440px;
+}
+
+.studio-canvas-panel .studio-runtime-view {
+  min-height: 320px;
+}
+
+.studio-canvas-panel .studio-empty-canvas {
+  min-height: 320px;
+}
+
+/* Fade the preview between iterations for a live-update feel. */
+.studio-canvas-panel .runtime-payload {
+  animation: studio-canvas-swap 520ms var(--ease-out-expo) both;
+}
+
+@keyframes studio-canvas-swap {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.985);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Bigger, more legible iteration tree. */
+.studio-tree-scroll {
+  max-height: 560px;
+}
+
+.studio-tree-appear {
+  animation: studio-node-pop 420ms var(--ease-out-expo) both;
+}
+
+@keyframes studio-node-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.studio-tree-node.is-newest {
+  border-color: var(--studio-violet);
+  box-shadow: 0 0 0 2px rgb(111 89 255 / 0.28), 0 14px 30px -22px rgb(23 23 20 / 0.7);
+}
+
+.studio-tree-node.is-newest::after {
+  content: 'NEW';
+  position: absolute;
+  top: -0.55rem;
+  right: 0.5rem;
+  border-radius: 999px;
+  background: var(--studio-violet);
+  padding: 0.1rem 0.4rem;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+/* Reasoning-history turns fade in as they arrive. */
+.studio-history-appear {
+  animation: studio-entry-in 380ms var(--ease-out-expo) both;
+}
+
+@keyframes studio-entry-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Orchestrator console -------------------------------------------- */
+.studio-console-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+
+.studio-console-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.7rem;
+  background: var(--studio-ink);
+  padding: 0.5rem 0.75rem;
+  color: white;
+  font-size: 0.66rem;
+  font-weight: 800;
+  transition: 160ms ease;
+}
+
+.studio-console-rate svg {
+  color: var(--studio-acid);
+}
+
+.studio-console-rate:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.studio-console-rate:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.studio-console-scroll {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 460px;
+  padding: 0.9rem;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgb(111 89 255 / 0.08), transparent 60%),
+    #14140f;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.28) transparent;
+}
+
+.studio-console-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.studio-console-entry-shell {
+  list-style: none;
+}
+
+.studio-console-entry {
+  display: block;
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 0.85rem;
+  background: rgb(255 255 255 / 0.03);
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  animation: studio-entry-in 420ms var(--ease-out-expo) both;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.studio-console-entry:hover {
+  border-color: rgb(255 255 255 / 0.16);
+}
+
+.studio-console-entry.is-selected {
+  border-color: var(--studio-acid);
+  background: rgb(219 255 69 / 0.06);
+}
+
+.studio-console-entry.is-error {
+  border-color: rgb(208 90 67 / 0.5);
+}
+
+.studio-console-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.studio-console-turn {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--studio-acid);
+}
+
+.studio-console-label {
+  flex: 1;
+  min-width: 0;
+  color: rgb(255 255 255 / 0.5);
+  font-size: 0.6rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-console-effort {
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.7);
+}
+
+.studio-console-effort.is-low { background: rgb(219 255 69 / 0.2); color: var(--studio-acid); }
+.studio-console-effort.is-medium { background: rgb(246 196 83 / 0.22); color: #ffd873; }
+.studio-console-effort.is-high { background: rgb(208 90 67 / 0.28); color: #ffb4a4; }
+
+.studio-console-body {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.studio-console-line {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.63rem;
+  line-height: 1.5;
+}
+
+.studio-console-field {
+  color: rgb(255 255 255 / 0.32);
+  font-weight: 700;
+}
+
+.studio-console-value {
+  min-width: 0;
+  color: rgb(255 255 255 / 0.82);
+  overflow-wrap: anywhere;
+}
+
+.studio-console-reason {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.studio-console-outline {
+  color: #b9e56a;
+  overflow-wrap: anywhere;
+}
+
+.studio-console-suggestion {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  border-radius: 0.55rem;
+  background: rgb(111 89 255 / 0.16);
+  padding: 0.35rem 0.5rem;
+  color: #d7ccff;
+}
+
+.studio-console-suggestion svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.studio-console-generating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--studio-acid);
+}
+
+.studio-console-error {
+  color: #ffb4a4;
+}
+
+.studio-console-empty {
+  display: flex;
+  gap: 0.55rem;
+  color: rgb(255 255 255 / 0.55);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+.studio-console-prompt-glyph {
+  color: var(--studio-acid);
+  font-weight: 900;
+}
+
+/* ---- Feedback modal -------------------------------------------------- */
+.studio-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.studio-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.55);
+  animation: studio-modal-fade 220ms var(--ease-out-expo) both;
+}
+
+.studio-modal-panel.studio-feedback-card {
+  position: relative;
+  z-index: 1;
+  width: min(30rem, calc(100vw - 3rem));
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+  margin: 0;
+  animation: studio-modal-pop 260ms var(--ease-out-expo) both;
+}
+
+.studio-modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  color: white;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.studio-modal-close:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+@keyframes studio-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes studio-modal-pop {
+  from { opacity: 0; transform: translateY(0.6rem) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 1180px) {
+  .studio-workspace {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .studio-workspace {
+    grid-template-columns: 1fr;
+  }
+  .studio-console-scroll {
+    max-height: 380px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-canvas-panel .runtime-payload,
+  .studio-tree-appear,
+  .studio-history-appear,
+  .studio-console-entry,
+  .studio-modal-backdrop,
+  .studio-modal-panel.studio-feedback-card {
+    animation: none;
+  }
+}

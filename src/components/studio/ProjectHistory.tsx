@@ -26,7 +26,7 @@ export default function ProjectHistory({ iterations, selectedId, onSelect }: Pro
       {iterations.length ? (
         <ol className="studio-history-list">
           {iterations.map((iteration) => (
-            <li key={iteration.id}>
+            <li key={iteration.id} className="studio-history-appear">
               <button
                 type="button"
                 className={selectedId === iteration.id ? 'is-selected' : ''}

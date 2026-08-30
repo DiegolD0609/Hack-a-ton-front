@@ -92,7 +92,7 @@ describe('Studio server projects', () => {
     expect(screen.getByRole('treeitem', { name: /Create a landing CTA/ })).toBeInTheDocument()
     expect(screen.getByRole('complementary', { name: 'UX suggestion' }))
       .toHaveTextContent('Keep related calls to action in one horizontal group.')
-    expect(screen.getByText('Landing reasoning', { selector: '.studio-output-reason p' })).toBeInTheDocument()
+    expect(screen.getByText('Landing reasoning', { selector: '.studio-console-reason' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Cambiar proyecto' }), {
       target: { value: 'conv_beta' },
@@ -211,6 +211,7 @@ describe('Studio server projects', () => {
     vi.stubGlobal('fetch', request)
     render(<Studio />)
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Rate & teach' }))
     expect(await screen.findByRole('heading', { name: 'Rate Landing after iteration 01' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Works well' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Comentario de feedback' }), {

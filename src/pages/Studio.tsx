@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import IterationTree, { type IterationStatus } from '@/components/studio/IterationTree'
 import ProjectFeedback from '@/components/studio/ProjectFeedback'
 import ProjectHistory from '@/components/studio/ProjectHistory'
+import OrchestratorConsole from '@/components/studio/OrchestratorConsole'
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
 import { studioResponseMeta } from '@/studio/StudioRenderer'
@@ -37,6 +38,7 @@ export default function Studio() {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
   const [workspace, setWorkspace] = useState(createStudioWorkspace)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isLoadingProjects, setIsLoadingProjects] = useState(true)
   const [projectsError, setProjectsError] = useState<string | null>(null)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
@@ -56,7 +58,6 @@ export default function Studio() {
   const selectedResponse = selectedIteration?.status === 'completed'
     ? selectedIteration.response
     : null
-  const selectedMeta = studioResponseMeta(selectedResponse)
 
   const updateProject = (projectId: string, update: (project: StudioProject) => StudioProject) => {
     setWorkspace((current) => {
@@ -241,6 +242,7 @@ export default function Studio() {
       suggestion: null,
       conversationId: activeProject.isDraft ? null : activeProject.id,
       response: null,
+      latencyMs: null,
       feedbackScore: null,
       feedbackComment: '',
       feedbackStatus: 'idle',
@@ -255,6 +257,7 @@ export default function Studio() {
     }))
     setIsGenerating(true)
     setProjectsError(null)
+    const startedAt = performance.now()
     try {
       let generated: unknown
       try {
@@ -292,6 +295,7 @@ export default function Studio() {
               suggestion: responseMeta.reason,
               conversationId: responseMeta.conversationId,
               response: generated,
+              latencyMs: performance.now() - startedAt,
             }
           : iteration),
       }))
@@ -347,6 +351,9 @@ export default function Studio() {
         : iteration),
     }))
   }
+
+  const openFeedback = () => setIsFeedbackOpen(true)
+  const closeFeedback = () => setIsFeedbackOpen(false)
 
   const submitFeedback = () => {
     const iteration = activeProject.iterations.find((candidate) => candidate.id === activeProject.selectedId)
@@ -576,47 +583,33 @@ export default function Studio() {
             iterationId={selectedIteration?.id ?? null}
           />
 
-          <div className={`studio-output-row ${!activeProject.isDraft && selectedIteration?.status === 'completed' ? 'has-feedback' : ''}`}>
-            <section className="studio-suggestion-card" aria-labelledby="backend-output-title">
-              <div className="studio-suggestion-mark"><StudioIcon name="spark" /></div>
-              <div className="studio-output-copy">
-                <span className="studio-sidebar-label">API response</span>
-                <h2 id="backend-output-title">Backend output</h2>
-                <div className="studio-output-reason">
-                  <span>Generation reason</span>
-                  <p>{selectedMeta.reason ?? 'The generation reason will appear here after an iteration.'}</p>
-                </div>
-                {selectedMeta.suggestion ? (
-                  <aside className="studio-suggestion-tip" aria-label="UX suggestion">
-                    <StudioIcon name="message" size={16} />
-                    <div>
-                      <span>Suggestion</span>
-                      <p>{selectedMeta.suggestion}</p>
-                    </div>
-                  </aside>
-                ) : null}
-              </div>
-            </section>
-
-            {!activeProject.isDraft ? (
-              <ProjectFeedback
-                iteration={selectedIteration}
-                projectName={activeProject.name}
-                onCommentChange={(feedbackComment) => updateSelectedFeedback({
-                  feedbackComment,
-                  feedbackStatus: 'idle',
-                  feedbackMessage: null,
-                })}
-                onScoreChange={(feedbackScore) => updateSelectedFeedback({
-                  feedbackScore,
-                  feedbackStatus: 'idle',
-                  feedbackMessage: null,
-                })}
-                onSubmit={submitFeedback}
-              />
-            ) : null}
-          </div>
+          <OrchestratorConsole
+            iterations={activeProject.iterations}
+            selectedId={activeProject.selectedId}
+            isGenerating={isGenerating}
+            onSelect={selectIteration}
+            onRate={openFeedback}
+            canRate={!activeProject.isDraft && selectedIteration?.status === 'completed'}
+          />
         </div>
+
+        <ProjectFeedback
+          open={isFeedbackOpen && !activeProject.isDraft}
+          iteration={selectedIteration}
+          projectName={activeProject.name}
+          onClose={closeFeedback}
+          onCommentChange={(feedbackComment) => updateSelectedFeedback({
+            feedbackComment,
+            feedbackStatus: 'idle',
+            feedbackMessage: null,
+          })}
+          onScoreChange={(feedbackScore) => updateSelectedFeedback({
+            feedbackScore,
+            feedbackStatus: 'idle',
+            feedbackMessage: null,
+          })}
+          onSubmit={submitFeedback}
+        />
       </main>
     </div>
   )

@@ -22,7 +22,7 @@ describe('IterationTree', () => {
     expect(screen.getByRole('treeitem', { name: /En fila/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('treeitem', { name: /En fila/ })).toHaveAttribute('aria-level', '3')
     expect(container.querySelectorAll('.studio-tree-link')).toHaveLength(3)
-    expect(container.querySelector('.studio-tree-canvas')).toHaveStyle({ width: '692px' })
+    expect(container.querySelector('.studio-tree-canvas')).toHaveStyle({ width: '790px' })
     expect(screen.getByText('Selected node metadata')).toBeInTheDocument()
     expect(screen.getByText('En fila', { selector: '.studio-tree-metadata dd' })).toBeInTheDocument()
 

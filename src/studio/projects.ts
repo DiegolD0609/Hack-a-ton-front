@@ -3,6 +3,7 @@ import type { IterationTreeNode } from '@/components/studio/IterationTree'
 export interface StudioProjectIteration extends IterationTreeNode {
   conversationId: string | null
   response: unknown
+  latencyMs: number | null
   feedbackScore: number | null
   feedbackComment: string
   feedbackStatus: 'idle' | 'sending' | 'sent' | 'error'
@@ -132,6 +133,7 @@ export function studioProjectFromDetail(payload: unknown): StudioProject | null 
       status: 'completed',
       suggestion: content,
       conversationId: id,
+      latencyMs: null,
       feedbackScore: null,
       feedbackComment: '',
       feedbackStatus: 'idle',

@@ -251,6 +251,66 @@ function StudioNode({ node }: { node: unknown }) {
   }
 }
 
+export interface StudioOrchestrationMeta {
+  reasoningEffort: string | null
+  feedbackAverage: number | null
+  feedbackCount: number | null
+  historyTurns: number | null
+  usedPreviousLayout: boolean | null
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function boolValue(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+/** Parse the backend's per-generation orchestration telemetry, if present. */
+export function studioOrchestration(response: unknown): StudioOrchestrationMeta | null {
+  const orchestration = objectValue(objectValue(response)?.orchestration)
+  if (!orchestration) return null
+  return {
+    reasoningEffort: stringValue(orchestration.reasoningEffort),
+    feedbackAverage: numberValue(orchestration.feedbackAverage),
+    feedbackCount: numberValue(orchestration.feedbackCount),
+    historyTurns: numberValue(orchestration.historyTurns),
+    usedPreviousLayout: boolValue(orchestration.usedPreviousLayout),
+  }
+}
+
+/**
+ * A one-line structural outline of a layout tree, e.g.
+ * ``page 'Perfil' [alert, section(column) [button 'Seguir', button 'Mensaje']]``
+ * — the same shape the backend smoke script prints, so the console reads like
+ * the transcript the team already knows.
+ */
+export function summarizeLayout(layout: unknown): { outline: string; nodeCount: number } {
+  let nodeCount = 0
+
+  const walk = (node: unknown): string => {
+    const record = objectValue(node)
+    if (!record) return ''
+    nodeCount += 1
+    const props = objectValue(record.props) ?? {}
+    const type = stringValue(record.type) ?? 'node'
+    let label: string = type
+    if (type === 'button') label = `button '${stringValue(props.label) ?? ''}'`
+    else if (type === 'text') label = `text/${stringValue(props.variant) ?? 'body'}`
+    else if (type === 'section') label = `section(${stringValue(props.direction) ?? 'column'})`
+    else if (type === 'page') label = `page '${stringValue(props.title) ?? ''}'`
+    const children = nodeChildren(record)
+    if (children.length) {
+      return `${label} [${children.map(walk).filter(Boolean).join(', ')}]`
+    }
+    return label
+  }
+
+  const outline = walk(objectValue(layout) ? layout : null)
+  return { outline, nodeCount }
+}
+
 export function studioResponseMeta(response: unknown): {
   conversationId: string | null
   generatedBy: string | null
