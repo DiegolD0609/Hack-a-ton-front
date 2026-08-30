@@ -1,9 +1,6 @@
 import { useState } from 'react'
-import Renderer from '@/runtime/Renderer'
-import type { UISpec } from '@/runtime/contracts'
-import type { DecisionFeedback } from '@/runtime/reducer'
-import type { DecisionActionRequest } from '@/components/ui-kit'
 import StudioIcon from '@/components/studio/StudioIcon'
+import StudioRenderer, { studioResponseMeta } from '@/studio/StudioRenderer'
 
 type CanvasWidth = 'desktop' | 'tablet' | 'mobile'
 
@@ -14,22 +11,18 @@ const widthClasses: Record<CanvasWidth, string> = {
 }
 
 interface StudioCanvasProps {
-  uiSpec: UISpec | null
-  decisionFeedback: Readonly<Record<string, DecisionFeedback>>
-  onAction: (request: DecisionActionRequest) => void
+  response: unknown
   isBuilding: boolean
-  stateVersion: number | null
 }
 
 export default function StudioCanvas({
-  uiSpec,
-  decisionFeedback,
-  onAction,
+  response,
   isBuilding,
-  stateVersion,
 }: StudioCanvasProps) {
   const [canvasWidth, setCanvasWidth] = useState<CanvasWidth>('desktop')
   const [showStructure, setShowStructure] = useState(false)
+  const responseMeta = studioResponseMeta(response)
+  const hasResponse = response !== null
 
   return (
     <section className="studio-panel studio-canvas-panel" aria-labelledby="canvas-title">
@@ -39,7 +32,7 @@ export default function StudioCanvas({
           <div className="min-w-0">
             <h2 id="canvas-title" className="studio-panel-title">Playground</h2>
             <p className="studio-panel-subtitle">
-              {uiSpec ? `UISpec · v${stateVersion ?? 0}` : 'Vacío hasta recibir la UISpec del API'}
+              {hasResponse ? 'Layout recibido de POST /studio/generate' : 'Vacío hasta recibir la respuesta del API'}
             </p>
           </div>
         </div>
@@ -84,41 +77,37 @@ export default function StudioCanvas({
               agent.local/preview
             </div>
             <span className="w-10 text-right font-mono text-[10px] text-black/35">
-              {stateVersion === null ? '—' : `v${stateVersion}`}
+              {hasResponse ? 'API' : '—'}
             </span>
           </div>
 
           <div className="studio-browser-body">
-            {uiSpec ? (
-              <div key={`${uiSpec.stateVersion}-${uiSpec.generatedBy}`} className="studio-runtime-view runtime-payload">
-                <Renderer
-                  uiSpec={uiSpec}
-                  onAction={onAction}
-                  decisionFeedback={decisionFeedback}
-                />
+            {hasResponse ? (
+              <div key={responseMeta.generatedBy ?? 'api'} className="studio-runtime-view runtime-payload">
+                <StudioRenderer response={response} />
               </div>
             ) : (
               <div className="studio-empty-canvas" aria-label="Playground vacío" />
             )}
 
-            {isBuilding && uiSpec ? (
+            {isBuilding ? (
               <div className="studio-building-pill" role="status">
                 <span className="studio-pulse-dot" />
-                El agente está reescribiendo la interfaz
+                El API está generando la interfaz
               </div>
             ) : null}
 
-            {showStructure && uiSpec ? (
+            {showStructure && hasResponse ? (
               <div className="studio-structure-overlay">
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                   <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/55">
                     Estructura generada
                   </span>
                   <span className="rounded-full bg-[#dbff45] px-2 py-1 font-mono text-[10px] font-bold text-black">
-                    {uiSpec.generatedBy}
+                    {responseMeta.generatedBy ?? 'api'}
                   </span>
                 </div>
-                <pre>{JSON.stringify(uiSpec.layout, null, 2)}</pre>
+                <pre>{JSON.stringify(responseMeta.layout, null, 2)}</pre>
               </div>
             ) : null}
           </div>
@@ -131,7 +120,9 @@ export default function StudioCanvas({
           Preview accesible
         </span>
         <span className="font-mono">
-          {uiSpec ? `${uiSpec.generatedBy} · ${uiSpec.layout.children.length} bloques raíz` : 'canvas vacío'}
+          {hasResponse
+            ? `${responseMeta.generatedBy ?? 'api'} · ${responseMeta.rootBlocks} bloques raíz`
+            : 'canvas vacío'}
         </span>
       </footer>
     </section>

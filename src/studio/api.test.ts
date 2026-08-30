@@ -1,51 +1,40 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createPromptRun, type StudioRequest } from './api'
-
-const projection = {
-  schemaVersion: '1',
-  runId: 'run_12345678',
-  workflowId: 'wf_12345678',
-  workflowVersion: 1,
-  stateVersion: 0,
-  lastSequence: 1,
-  status: 'running',
-  operation: {},
-  recentEvents: [],
-  availableActions: [],
-}
+import { generateStudioUI, type StudioRequest } from './api'
 
 function jsonResponse(payload: unknown): Response {
   return { ok: true, json: async () => payload } as Response
 }
 
-describe('API-only studio run', () => {
-  it('sends the literal prompt as the only workflow step', async () => {
-    const request = vi.fn<StudioRequest>()
-      .mockResolvedValueOnce(jsonResponse(projection))
-      .mockResolvedValueOnce(jsonResponse({
-        workflowId: projection.workflowId,
-        workflowVersionId: 'wfv_12345678',
-        version: 2,
-      }))
-      .mockResolvedValueOnce(jsonResponse({ ...projection, workflowVersion: 2 }))
+describe('standalone Studio API', () => {
+  it('sends one literal prompt directly to /studio/generate', async () => {
+    const response = {
+      generatedBy: 'llm',
+      reason: 'Dos botones.',
+      layout: { id: 'ui_page', type: 'page', props: { title: 'Botones' }, children: [] },
+    }
+    const request = vi.fn<StudioRequest>().mockResolvedValue(jsonResponse(response))
 
-    await createPromptRun('/api', '  Haz exclusivamente dos botones  ', request)
+    await expect(generateStudioUI('/api', '  Haz exclusivamente dos botones  ', request))
+      .resolves.toBe(response)
 
-    expect(request).toHaveBeenCalledTimes(3)
-    const versionCall = request.mock.calls[1]
-    const body = JSON.parse(String(versionCall[1].body)) as Record<string, unknown>
-    expect(body).toEqual({
-      steps: [
-        {
-          id: expect.stringMatching(/^request-[a-z0-9]+$/),
-          type: 'studio.request',
-          title: 'Solicitud de interfaz',
-          objective: 'Haz exclusivamente dos botones',
-          inputs: [],
-          requiresHumanReview: false,
-        },
-      ],
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(request.mock.calls[0][0]).toMatch(/\/api\/studio\/generate$/)
+    expect(request.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'Haz exclusivamente dos botones' }),
     })
-    expect(body).not.toHaveProperty('baseVersion')
+  })
+
+  it('surfaces the backend error without falling back to a run', async () => {
+    const request = vi.fn<StudioRequest>().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: 'Prompt inválido' }),
+    } as Response)
+
+    await expect(generateStudioUI('/api', 'dos botones', request))
+      .rejects.toThrow('Prompt inválido')
+    expect(request).toHaveBeenCalledTimes(1)
   })
 })
