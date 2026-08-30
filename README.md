@@ -168,6 +168,6 @@ docker compose up --build
 ```
 
 Docker publica el frontend en `http://localhost:3000`, escucha el `PORT`
-inyectado por la plataforma y expone `/health`. Railway usa `railway.json`; el
-contenedor solo contiene Nginx y los assets estáticos, y su proxy conecta con el
-backend externo configurado en `BACKEND_URL`.
+inyectado por la plataforma (8080 por defecto) y expone `/health`. Railway usa
+`railway.json`; el contenedor solo contiene Nginx y los assets estáticos, y su
+proxy conecta con el backend externo configurado en `BACKEND_URL`.
