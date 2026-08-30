@@ -16,6 +16,12 @@ import useRunSocket from '@/runtime/useRunSocket'
 
 const WAITING_RUN_ID = 'run_waiting_for_backend' as RunId
 
+// Auto-advance cadence. When the LLM layout upgrade has already landed we only
+// hold briefly so the viewer sees it; otherwise we wait a little longer to give
+// the upgrade a chance to arrive before moving to the next step.
+const STEP_HOLD_MS = 1600
+const UPGRADE_WAIT_MS = 4500
+
 const connectionLabels: Record<ConnectionStatus, string> = {
   idle: 'Sin run activo',
   connecting: 'Conectando',
@@ -69,6 +75,7 @@ export default function Demo() {
   const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>(loadRunHistory)
   const [requestState, setRequestState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [autoMode, setAutoMode] = useState(true)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
   const token = import.meta.env.VITE_DEMO_TOKEN || 'replace-with-a-shared-demo-token'
   const pollingEnabled = import.meta.env.VITE_RUNTIME_POLLING === 'true'
@@ -110,24 +117,74 @@ export default function Demo() {
     }
   }
 
+  const startRun = (path: string, body?: Record<string, unknown>) => {
+    setAutoMode(true)
+    void performRequest(path, body)
+  }
+
   const startNewRun = () => {
     setRunId(null)
     setRequestState('idle')
     setRequestError(null)
+    setAutoMode(true)
     const url = new URL(window.location.href)
     url.pathname = appConfig.routes.demo
     url.search = ''
     window.history.replaceState({}, '', url)
   }
 
-  const canAdvance =
-    runtime.transport !== 'offline' && runtime.projection?.status === 'running'
-  const runFinished = runtime.projection?.status === 'completed'
-  const runPaused = runtime.projection?.status === 'paused'
+  const status = runtime.projection?.status
+  const canAdvance = runtime.transport !== 'offline' && status === 'running'
+  const runFinished = status === 'completed'
+  const runPaused = status === 'paused'
   const isTrialByFire = (runtime.projection?.workflowVersion ?? 1) > 1
+  const isUpgraded = runtime.uiSpec?.generatedBy === 'llm'
   const editorUrl = runId
     ? `${appConfig.routes.editor}?runId=${encodeURIComponent(runId)}`
     : appConfig.routes.editor
+
+  // A failed transition stops the automatic loop so it can't error-spin.
+  useEffect(() => {
+    if (requestState === 'error') setAutoMode(false)
+  }, [requestState])
+
+  // The heart of the guided demo: while a run is actively running, advance it on
+  // its own. It halts at the human decision (status "paused") and resumes once a
+  // decision is applied and the run is running again. Each step waits for the LLM
+  // layout upgrade (up to a cap) so the interface visibly restructures itself.
+  useEffect(() => {
+    if (!runId || !autoMode) return
+    if (requestState === 'loading') return
+    if (runtime.transport === 'offline') return
+    if (status !== 'running') return
+    const delay = isUpgraded ? STEP_HOLD_MS : UPGRADE_WAIT_MS
+    const timer = window.setTimeout(() => {
+      void performRequest('/demo/advance', { runId })
+    }, delay)
+    return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    runId,
+    autoMode,
+    requestState,
+    runtime.transport,
+    status,
+    runtime.projection?.stateVersion,
+    isUpgraded,
+  ])
+
+  const advancing = requestState === 'loading'
+  const autoActive = autoMode && !!runId && !runFinished
+
+  const flowNote = !runId
+    ? null
+    : runFinished
+      ? 'Operación completada. Inicia un nuevo run o revisa la historia.'
+      : runPaused
+        ? 'En pausa para tu decisión: elígela en el panel o pídele una recomendación a Ari.'
+        : autoMode
+          ? 'Reproducción automática: la operación avanza sola y se detiene en la decisión humana.'
+          : 'Automático en pausa. Usa “Avanzar” para dar un paso, o reanuda la reproducción.'
 
   return (
     <div className="app-shell flex flex-col">
@@ -171,7 +228,7 @@ export default function Demo() {
               <p className="mt-4 max-w-2xl text-lg text-content-muted">
                 {isTrialByFire
                   ? 'Recorre el flow base, ejecuta el paso inventado y resuelve su revisión humana sin reiniciar.'
-                  : 'Inicia un run, avanza sus cinco pasos y resuelve la decisión humana sin salir del WebSocket.'}{' '}
+                  : 'Inicia un run: la operación avanza sola, se detiene en la decisión humana y la interfaz se reescribe en cada paso.'}{' '}
                 El inspector muestra cada upgrade determinista o LLM.
               </p>
             </div>
@@ -183,7 +240,7 @@ export default function Demo() {
                     type="button"
                     className="btn-secondary"
                     disabled={requestState === 'loading'}
-                    onClick={() => void performRequest('/demo/skeleton')}
+                    onClick={() => startRun('/demo/skeleton')}
                   >
                     Skeleton H3
                   </button>
@@ -191,7 +248,7 @@ export default function Demo() {
                     type="button"
                     className="btn-primary"
                     disabled={requestState === 'loading'}
-                    onClick={() => void performRequest('/runs')}
+                    onClick={() => startRun('/runs')}
                   >
                     {requestState === 'loading' ? 'Iniciando…' : 'Iniciar golden path'}
                   </button>
@@ -211,17 +268,26 @@ export default function Demo() {
                   </a>
                   <button
                     type="button"
+                    className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={runFinished}
+                    aria-pressed={autoMode}
+                    onClick={() => setAutoMode((value) => !value)}
+                  >
+                    {autoActive ? 'Pausar auto' : 'Reproducir'}
+                  </button>
+                  <button
+                    type="button"
                     className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!canAdvance || requestState === 'loading'}
+                    disabled={!canAdvance || advancing}
                     onClick={() => void performRequest('/demo/advance', { runId })}
                   >
-                    {requestState === 'loading'
+                    {advancing
                       ? 'Avanzando…'
                       : runFinished
                         ? 'Run completado'
                         : runPaused
                           ? 'Esperando decisión'
-                          : 'Avanzar demo'}
+                          : 'Avanzar'}
                   </button>
                 </>
               )}
@@ -230,7 +296,18 @@ export default function Demo() {
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-content-muted">
             <span className="font-mono">{runId ?? 'Crea un run para comenzar'}</span>
-            {requestState === 'sent' ? <span>Transición confirmada por HTTP.</span> : null}
+            {runId && runtime.uiSpec ? (
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  isUpgraded
+                    ? 'bg-emphasis-normal-bg text-emphasis-normal-fg'
+                    : 'bg-surface-tinted text-content-muted'
+                }`}
+              >
+                {isUpgraded ? 'Interfaz mejorada por LLM' : 'Interfaz determinista'}
+              </span>
+            ) : null}
+            {flowNote ? <span>{flowNote}</span> : null}
           </div>
 
           {runtime.error || requestError ? (
@@ -258,7 +335,7 @@ export default function Demo() {
                     type="button"
                     className={moment === 3 ? 'btn-primary' : 'btn-secondary'}
                     disabled={requestState === 'loading'}
-                    onClick={() => void performRequest(`/demo/moment/${moment}`)}
+                    onClick={() => startRun(`/demo/moment/${moment}`)}
                   >
                     Momento {moment}
                   </button>
@@ -293,7 +370,25 @@ export default function Demo() {
           ) : null}
 
           <div className={`mt-6 grid items-start gap-6 ${assistantEnabled && runId ? 'lg:grid-cols-[minmax(0,1fr)_21rem]' : ''}`}>
-            <section className="surface-card min-h-80 p-5 sm:p-8" aria-live="polite">
+            <section className="surface-card relative min-h-80 p-5 sm:p-8" aria-live="polite">
+              {runId && advancing ? (
+                <div
+                  className="absolute inset-0 z-10 flex items-center justify-center rounded-card bg-surface/70 backdrop-blur-sm"
+                  role="status"
+                  aria-live="assertive"
+                >
+                  <div className="flex items-center gap-3 rounded-control bg-surface px-5 py-4 shadow-lg">
+                    <svg className="h-6 w-6 animate-spin text-signal" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-content">Avanzando la operación…</p>
+                      <p className="text-xs text-content-muted">Ari genera la interfaz del nuevo estado.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               {runtime.uiSpec ? (
                 <div
                   key={`${runtime.uiSpec.stateVersion}-${runtime.uiSpec.generatedBy}`}
