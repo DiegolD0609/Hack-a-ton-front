@@ -44,7 +44,6 @@ function connectorPath(parent: NodePosition, child: NodePosition): string {
 
 export default function IterationTree({ iterations, selectedId, onSelect }: IterationTreeProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const selectedNode = iterations.find((iteration) => iteration.id === selectedId) ?? null
   const newestId = iterations.reduce((max, iteration) => Math.max(max, iteration.id), 0)
   const childrenByParent = new Map<number | null, IterationTreeNode[]>()
 
@@ -184,20 +183,6 @@ export default function IterationTree({ iterations, selectedId, onSelect }: Iter
             )
           })}
         </div>
-      </div>
-
-      <div className="studio-tree-metadata" aria-live="polite">
-        <span className="studio-tree-metadata-label">Selected node metadata</span>
-        <dl>
-          <div>
-            <dt>Type</dt>
-            <dd>{selectedNode ? 'Prompt' : 'State'}</dd>
-          </div>
-          <div className="is-prompt">
-            <dt>Prompt</dt>
-            <dd>{selectedNode?.prompt ?? 'No prompt — this is the project root.'}</dd>
-          </div>
-        </dl>
       </div>
     </section>
   )

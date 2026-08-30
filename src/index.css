@@ -2784,3 +2784,261 @@
     animation: none;
   }
 }
+
+/* Feedback POST rendered live in the orchestrator console. */
+.studio-console-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.studio-console-feedback.is-sending { color: rgb(255 255 255 / 0.7); }
+.studio-console-feedback.is-sent { color: var(--studio-acid); }
+.studio-console-feedback.is-error { color: #ffb4a4; }
+
+.studio-console-feedback .studio-pulse-dot {
+  background: currentColor;
+}
+
+/* ---- Suggestion + Rate & Teach panel (below the chat) --------------- */
+.studio-suggestion-block {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.studio-suggestion-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  border: 1px solid rgb(111 89 255 / 0.28);
+  border-radius: 0.85rem;
+  background: rgb(111 89 255 / 0.08);
+  padding: 0.7rem 0.8rem;
+  color: var(--studio-ink);
+}
+
+.studio-suggestion-body svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--studio-violet);
+}
+
+.studio-suggestion-body p {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.studio-suggestion-body.is-guidance {
+  border-color: rgb(214 128 34 / 0.4);
+  background: rgb(246 196 83 / 0.16);
+}
+
+.studio-suggestion-body.is-guidance svg {
+  color: #c67b16;
+}
+
+.studio-suggestion-empty {
+  border: 1px dashed rgb(23 23 20 / 0.16);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  color: rgb(23 23 20 / 0.44);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.studio-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.studio-rate-button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.8rem;
+  background: var(--studio-ink);
+  padding: 0.72rem 1rem;
+  color: white;
+  font-size: 0.74rem;
+  font-weight: 850;
+  box-shadow: 0 10px 22px -14px rgb(23 23 20 / 0.7);
+  transition: 170ms ease;
+}
+
+.studio-rate-button svg {
+  color: var(--studio-acid);
+}
+
+.studio-rate-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px -14px rgb(23 23 20 / 0.75);
+}
+
+.studio-rate-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.studio-faq-button {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(23 23 20 / 0.18);
+  border-radius: 0.8rem;
+  background: white;
+  color: rgb(23 23 20 / 0.55);
+  transition: 160ms ease;
+}
+
+.studio-faq-button:hover,
+.studio-faq-button.is-active {
+  border-color: var(--studio-violet);
+  color: var(--studio-violet);
+}
+
+.studio-faq-popover {
+  display: grid;
+  gap: 0.3rem;
+  border: 1px solid rgb(23 23 20 / 0.14);
+  border-radius: 0.85rem;
+  background: white;
+  padding: 0.75rem 0.8rem;
+  box-shadow: 0 14px 30px -22px rgb(23 23 20 / 0.7);
+  animation: studio-entry-in 220ms var(--ease-out-expo) both;
+}
+
+.studio-faq-popover strong {
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.studio-faq-popover p {
+  color: rgb(23 23 20 / 0.6);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+/* Iteration tree now lives between the playground and the console. */
+.studio-main-grid .studio-iteration-card {
+  border: 1px solid rgb(23 23 20 / 0.15);
+  border-radius: 1.15rem;
+  background: var(--studio-paper);
+  box-shadow: 0 18px 35px -32px rgb(23 23 20 / 0.65);
+  padding: 1.1rem 1.25rem;
+}
+
+/* ============================================================= *
+ *  Mobile responsiveness pass for the Studio workspace          *
+ * ============================================================= */
+
+@media (max-width: 820px) {
+  /* Topbar: brand + actions on one row, the project switcher full-width below. */
+  .studio-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.8rem;
+    min-height: 0;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .studio-brand {
+    order: 0;
+    margin-right: auto;
+  }
+
+  .studio-top-actions {
+    order: 1;
+  }
+
+  .studio-project-switcher {
+    order: 2;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .studio-tree-scroll {
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 560px) {
+  .studio-main-grid {
+    gap: 0.6rem;
+    padding: 0.5rem;
+  }
+
+  /* Tree reads as an inline card, not a floating panel, on small screens. */
+  .studio-main-grid .studio-iteration-card {
+    padding: 0.9rem;
+    border-radius: 0.9rem;
+  }
+
+  .studio-tree-scroll {
+    max-height: 340px;
+  }
+
+  .studio-console-scroll {
+    max-height: 340px;
+    padding: 0.7rem;
+  }
+
+  .studio-console-entry {
+    padding: 0.65rem 0.7rem;
+  }
+
+  /* Modal gets more of the viewport. */
+  .studio-modal-root {
+    padding: 0.75rem;
+  }
+
+  .studio-modal-panel.studio-feedback-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Roomier tap targets in the project switcher. */
+  .studio-project-switcher > button {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+}
+
+/* Very narrow: stack each console line's label above its value. */
+@media (max-width: 480px) {
+  .studio-console-line {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+
+  .studio-console-field {
+    font-size: 0.54rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .studio-console-entry-head {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .studio-console-label {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .studio-rate-row {
+    flex-wrap: wrap;
+  }
+
+  .studio-faq-popover {
+    font-size: 0.95em;
+  }
+}

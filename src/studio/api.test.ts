@@ -4,6 +4,7 @@ import {
   getStudioProject,
   listStudioProjects,
   submitStudioProjectFeedback,
+  deleteStudioProject,
   type StudioRequest,
 } from './api'
 
@@ -75,6 +76,26 @@ describe('standalone Studio API', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ score: 5, comment: 'Keep the compact hierarchy.' }),
     })
+  })
+
+  it('deletes a saved project with a DELETE request', async () => {
+    const request = vi.fn<StudioRequest>().mockResolvedValue({ ok: true, status: 204 } as Response)
+
+    await expect(deleteStudioProject('/api', 'conv_one', request)).resolves.toBeUndefined()
+
+    expect(request.mock.calls[0][0]).toMatch(/\/api\/studio\/projects\/conv_one$/)
+    expect(request.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+  })
+
+  it('surfaces a delete failure as a StudioApiError', async () => {
+    const request = vi.fn<StudioRequest>().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ detail: 'Proyecto no existe' }),
+    } as Response)
+
+    await expect(deleteStudioProject('/api', 'conv_missing', request))
+      .rejects.toMatchObject({ message: 'Proyecto no existe', status: 404 })
   })
 
   it('rejects an invalid feedback score before calling the backend', async () => {

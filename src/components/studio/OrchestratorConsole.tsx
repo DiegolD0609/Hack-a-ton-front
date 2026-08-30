@@ -13,8 +13,26 @@ interface OrchestratorConsoleProps {
   selectedId: number | null
   isGenerating: boolean
   onSelect: (id: number) => void
-  onRate: () => void
-  canRate: boolean
+}
+
+function scoreGlyph(score: number | null): string {
+  if (score === 1) return '👎'
+  if (score === 5) return '👍'
+  return ''
+}
+
+function feedbackWire(iteration: StudioProjectIteration): string {
+  const score = iteration.feedbackScore
+  const scoreText = score !== null ? `${scoreGlyph(score)} score ${score}`.trim() : ''
+  if (iteration.feedbackStatus === 'sending') return `POST /feedback → sending… ${scoreText}`
+  if (iteration.feedbackStatus === 'sent') {
+    const comment = iteration.feedbackComment.trim()
+    return `POST /feedback → 204 saved · ${scoreText}${comment ? ` "${comment}"` : ''}`
+  }
+  if (iteration.feedbackStatus === 'error') {
+    return `POST /feedback → error · ${iteration.feedbackMessage ?? 'failed'}`
+  }
+  return ''
 }
 
 function turnLabel(iteration: StudioProjectIteration, orchestration: StudioOrchestrationMeta | null): string {
@@ -116,6 +134,15 @@ function IterationEntry({
                   <code className="studio-console-outline">{outline.outline}</code>
                 </ConsoleLine>
               ) : null}
+              {iteration.feedbackStatus !== 'idle' ? (
+                <div className="studio-console-line">
+                  <span className="studio-console-field">rating</span>
+                  <span className={`studio-console-value studio-console-feedback is-${iteration.feedbackStatus}`}>
+                    {iteration.feedbackStatus === 'sending' ? <span className="studio-pulse-dot" /> : null}
+                    {feedbackWire(iteration)}
+                  </span>
+                </div>
+              ) : null}
             </>
           )}
         </div>
@@ -129,8 +156,6 @@ export default function OrchestratorConsole({
   selectedId,
   isGenerating,
   onSelect,
-  onRate,
-  canRate,
 }: OrchestratorConsoleProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -149,15 +174,6 @@ export default function OrchestratorConsole({
             <p className="studio-panel-subtitle">HOW THE LLM READS PROMPT · HISTORY · FEEDBACK</p>
           </div>
         </div>
-        <button
-          type="button"
-          className="studio-console-rate"
-          disabled={!canRate}
-          onClick={onRate}
-        >
-          <StudioIcon name="spark" size={14} />
-          Rate & teach
-        </button>
       </header>
 
       <div ref={scrollRef} className="studio-console-scroll" role="log" aria-label="Orchestrator console" aria-live="polite">

@@ -94,6 +94,18 @@ export async function getStudioProject(
   return response.json() as Promise<unknown>
 }
 
+export async function deleteStudioProject(
+  apiUrl: string,
+  projectId: string,
+  request: StudioRequest = fetch,
+): Promise<void> {
+  const response = await request(
+    apiEndpoint(apiUrl, `/studio/projects/${encodeURIComponent(projectId)}`),
+    { method: 'DELETE', headers: { Accept: 'application/json' } },
+  )
+  if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
+}
+
 export async function submitStudioProjectFeedback(
   apiUrl: string,
   projectId: string,

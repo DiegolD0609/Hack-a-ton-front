@@ -211,7 +211,7 @@ describe('Studio server projects', () => {
     vi.stubGlobal('fetch', request)
     render(<Studio />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Rate & teach' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Rate & Teach' }))
     expect(await screen.findByRole('heading', { name: 'Rate Landing after iteration 01' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Works well' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Comentario de feedback' }), {
@@ -226,6 +226,32 @@ describe('Studio server projects', () => {
       score: 5,
       comment: 'Keep this hierarchy.',
     })
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Rate Landing after iteration 01' })).not.toBeInTheDocument(),
+    )
+  })
+
+  it('deletes a saved project through the backend and drops it from the switcher', async () => {
+    const request = vi.fn<StudioRequest>()
+      .mockResolvedValueOnce(jsonResponse([projectSummary('conv_alpha', 'Landing')]))
+      .mockResolvedValueOnce(jsonResponse(
+        projectDetail('conv_alpha', 'Landing', 'Create a landing CTA', 'Landing action', 'Landing reasoning'),
+      ))
+      .mockResolvedValueOnce({ ok: true, status: 204 } as Response)
+    vi.stubGlobal('fetch', request)
+    render(<Studio />)
+
+    expect(await screen.findByRole('button', { name: 'Landing action' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar proyecto' }))
+    expect(screen.getByRole('dialog', { name: 'Eliminar proyecto' })).toHaveTextContent('Delete project?')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete project' }))
+
+    await waitFor(() => expect(request.mock.calls[2][0]).toMatch(/\/studio\/projects\/conv_alpha$/))
+    expect(request.mock.calls[2][1]).toMatchObject({ method: 'DELETE' })
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Cambiar proyecto' })).toHaveDisplayValue('UI Project 1 · draft'),
+    )
   })
 
   it('recreates a missing project with its name after a stale conversation 404', async () => {

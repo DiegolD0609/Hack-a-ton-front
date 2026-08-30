@@ -8,6 +8,7 @@ export type StudioIconName =
   | 'chevron'
   | 'cursor'
   | 'eye'
+  | 'help'
   | 'layers'
   | 'message'
   | 'pause'
@@ -31,6 +32,7 @@ const paths: Record<StudioIconName, ReactNode> = {
   chevron: <path d="m9 18 6-6-6-6" />,
   cursor: <path d="m5 3 14 9-6 1-3 6L5 3Z" />,
   eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></>,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.6 9.2a2.5 2.5 0 1 1 3.6 2.4c-.8.5-1.2.9-1.2 1.9" /><path d="M12 17h.01" /></>,
   layers: <><path d="m12 2 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 17l9 5 9-5" /></>,
   message: <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />,
   pause: <><path d="M9 5v14M15 5v14" /></>,

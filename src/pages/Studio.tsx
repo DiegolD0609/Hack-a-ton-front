@@ -3,10 +3,12 @@ import IterationTree, { type IterationStatus } from '@/components/studio/Iterati
 import ProjectFeedback from '@/components/studio/ProjectFeedback'
 import ProjectHistory from '@/components/studio/ProjectHistory'
 import OrchestratorConsole from '@/components/studio/OrchestratorConsole'
+import StudioSuggestion from '@/components/studio/StudioSuggestion'
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
 import { studioResponseMeta } from '@/studio/StudioRenderer'
 import {
+  deleteStudioProject,
   generateStudioUI,
   getStudioProject,
   listStudioProjects,
@@ -44,6 +46,7 @@ export default function Studio() {
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [isRenamingProject, setIsRenamingProject] = useState(false)
   const [isDeletingProject, setIsDeletingProject] = useState(false)
+  const [isDeletingBusy, setIsDeletingBusy] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [projectNameDraft, setProjectNameDraft] = useState('')
 
@@ -58,6 +61,8 @@ export default function Studio() {
   const selectedResponse = selectedIteration?.status === 'completed'
     ? selectedIteration.response
     : null
+  const selectedMeta = studioResponseMeta(selectedResponse)
+  const canRate = !activeProject.isDraft && selectedIteration?.status === 'completed'
 
   const updateProject = (projectId: string, update: (project: StudioProject) => StudioProject) => {
     setWorkspace((current) => {
@@ -198,7 +203,6 @@ export default function Studio() {
   }
 
   const openProjectDeleter = () => {
-    if (!activeProject.isDraft) return
     setIsCreatingProject(false)
     setIsRenamingProject(false)
     setIsDeletingProject(true)
@@ -212,11 +216,31 @@ export default function Studio() {
     setIsRenamingProject(false)
   }
 
-  const deleteDraftProject = () => {
-    if (!activeProject.isDraft) return
-    removeMissingProject(activeProject.id)
-    setProjectsError(null)
-    setIsDeletingProject(false)
+  const deleteActiveProject = async () => {
+    const project = activeProject
+    if (project.isDraft) {
+      removeMissingProject(project.id)
+      setProjectsError(null)
+      setIsDeletingProject(false)
+      return
+    }
+
+    setIsDeletingBusy(true)
+    try {
+      await deleteStudioProject(apiUrl, project.id)
+      removeMissingProject(project.id)
+      setProjectsError(null)
+      setIsDeletingProject(false)
+    } catch (requestError) {
+      if (requestError instanceof StudioApiError && requestError.status === 404) {
+        removeMissingProject(project.id)
+        setIsDeletingProject(false)
+      } else {
+        setProjectsError(errorMessage(requestError, 'No fue posible eliminar el proyecto.'))
+      }
+    } finally {
+      setIsDeletingBusy(false)
+    }
   }
 
   const switchProject = (projectId: string) => {
@@ -379,6 +403,7 @@ export default function Studio() {
               }
             : candidate),
         }))
+        window.setTimeout(() => setIsFeedbackOpen(false), 700)
       })
       .catch((requestError: unknown) => {
         updateProject(projectId, (project) => ({
@@ -447,8 +472,8 @@ export default function Studio() {
             aria-label="Eliminar proyecto"
             title={activeProject.isDraft
               ? 'Delete this unsaved draft'
-              : 'Backend endpoint required to delete saved projects'}
-            disabled={isGenerating || isLoadingProjects || !activeProject.isDraft}
+              : 'Delete this saved project from the backend'}
+            disabled={isGenerating || isLoadingProjects}
             onClick={openProjectDeleter}
           >
             ×
@@ -491,14 +516,23 @@ export default function Studio() {
 
           {isDeletingProject ? (
             <div className="studio-project-dialog" role="dialog" aria-label="Eliminar proyecto">
-              <span className="studio-project-dialog-title">Delete draft?</span>
+              <span className="studio-project-dialog-title">
+                {activeProject.isDraft ? 'Delete draft?' : 'Delete project?'}
+              </span>
               <p className="studio-project-dialog-note">
-                “{activeProject.name}” and its unsent prompt will be removed from this tab.
+                {activeProject.isDraft
+                  ? `“${activeProject.name}” and its unsent prompt will be removed from this tab.`
+                  : `“${activeProject.name}” and all its iterations and feedback will be permanently deleted from the backend.`}
               </p>
               <div>
-                <button type="button" onClick={() => setIsDeletingProject(false)}>Cancel</button>
-                <button type="button" className="studio-project-delete-confirm" onClick={deleteDraftProject}>
-                  Delete draft
+                <button type="button" disabled={isDeletingBusy} onClick={() => setIsDeletingProject(false)}>Cancel</button>
+                <button
+                  type="button"
+                  className="studio-project-delete-confirm"
+                  disabled={isDeletingBusy}
+                  onClick={() => void deleteActiveProject()}
+                >
+                  {isDeletingBusy ? 'Deleting…' : activeProject.isDraft ? 'Delete draft' : 'Delete project'}
                 </button>
               </div>
             </div>
@@ -556,10 +590,11 @@ export default function Studio() {
             </div>
           </section>
 
-          <IterationTree
-            iterations={activeProject.iterations}
-            selectedId={activeProject.selectedId}
-            onSelect={selectIteration}
+          <StudioSuggestion
+            suggestion={selectedMeta.suggestion}
+            generatedBy={selectedMeta.generatedBy}
+            canRate={Boolean(canRate)}
+            onRate={openFeedback}
           />
 
           <ProjectHistory
@@ -583,13 +618,17 @@ export default function Studio() {
             iterationId={selectedIteration?.id ?? null}
           />
 
+          <IterationTree
+            iterations={activeProject.iterations}
+            selectedId={activeProject.selectedId}
+            onSelect={selectIteration}
+          />
+
           <OrchestratorConsole
             iterations={activeProject.iterations}
             selectedId={activeProject.selectedId}
             isGenerating={isGenerating}
             onSelect={selectIteration}
-            onRate={openFeedback}
-            canRate={!activeProject.isDraft && selectedIteration?.status === 'completed'}
           />
         </div>
 
