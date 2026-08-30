@@ -1,8 +1,13 @@
 export type StudioRequest = (url: string, init: RequestInit) => Promise<Response>
 
-export interface StudioGenerateContext {
-  history?: Array<{ role: 'user' | 'assistant'; content: string }>
-  previousLayout?: unknown
+export class StudioApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'StudioApiError'
+    this.status = status
+  }
 }
 
 function apiEndpoint(apiUrl: string, path: string): string {
@@ -29,7 +34,7 @@ async function responseMessage(response: Response): Promise<string> {
 export async function generateStudioUI(
   apiUrl: string,
   prompt: string,
-  context: StudioGenerateContext = {},
+  conversationId: string | null = null,
   request: StudioRequest = fetch,
 ): Promise<unknown> {
   const exactPrompt = prompt.trim()
@@ -37,10 +42,9 @@ export async function generateStudioUI(
 
   const body: Record<string, unknown> = {
     prompt: exactPrompt,
-    history: context.history ?? [],
   }
-  if (context.previousLayout !== undefined && context.previousLayout !== null) {
-    body.previousLayout = context.previousLayout
+  if (conversationId) {
+    body.conversationId = conversationId
   }
 
   const response = await request(apiEndpoint(apiUrl, '/studio/generate'), {
@@ -49,6 +53,6 @@ export async function generateStudioUI(
     body: JSON.stringify(body),
   })
 
-  if (!response.ok) throw new Error(await responseMessage(response))
+  if (!response.ok) throw new StudioApiError(await responseMessage(response), response.status)
   return response.json() as Promise<unknown>
 }

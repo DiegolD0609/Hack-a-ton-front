@@ -252,6 +252,7 @@ function StudioNode({ node }: { node: unknown }) {
 }
 
 export function studioResponseMeta(response: unknown): {
+  conversationId: string | null
   generatedBy: string | null
   reason: string | null
   layout: unknown
@@ -260,6 +261,7 @@ export function studioResponseMeta(response: unknown): {
   const payload = objectValue(response)
   const layout = objectValue(payload?.layout)
   return {
+    conversationId: stringValue(payload?.conversationId),
     generatedBy: stringValue(payload?.generatedBy),
     reason: stringValue(payload?.reason),
     layout: payload?.layout,

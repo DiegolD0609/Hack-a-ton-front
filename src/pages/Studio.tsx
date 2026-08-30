@@ -6,32 +6,23 @@ import IterationTree, {
 import StudioCanvas from '@/components/studio/StudioCanvas'
 import StudioIcon from '@/components/studio/StudioIcon'
 import { studioResponseMeta } from '@/studio/StudioRenderer'
-import { generateStudioUI } from '@/studio/api'
+import { generateStudioUI, StudioApiError } from '@/studio/api'
 
 interface StudioIteration extends IterationTreeNode {
+  conversationId: string | null
   response: unknown
 }
 
-function branchPath(iterations: StudioIteration[], leaf: StudioIteration | null): StudioIteration[] {
-  const byId = new Map(iterations.map((iteration) => [iteration.id, iteration]))
-  const path: StudioIteration[] = []
-  let current = leaf
-  while (current) {
-    path.push(current)
-    current = current.parentId === null ? null : byId.get(current.parentId) ?? null
-  }
-  return path.reverse()
-}
-
-function closestCompletedIteration(
+function latestCompletedIteration(
   iterations: StudioIteration[],
-  selectedId: number | null,
+  conversationId: string | null,
 ): StudioIteration | null {
-  const byId = new Map(iterations.map((iteration) => [iteration.id, iteration]))
-  let current = selectedId === null ? null : byId.get(selectedId) ?? null
-  while (current) {
-    if (current.status === 'completed') return current
-    current = current.parentId === null ? null : byId.get(current.parentId) ?? null
+  if (!conversationId) return null
+  for (let index = iterations.length - 1; index >= 0; index -= 1) {
+    const iteration = iterations[index]
+    if (iteration.conversationId === conversationId && iteration.status === 'completed') {
+      return iteration
+    }
   }
   return null
 }
@@ -66,18 +57,8 @@ export default function Studio() {
     const exactPrompt = prompt.trim()
     if (!exactPrompt || isGenerating) return
 
-    const parent = closestCompletedIteration(iterations, selectedId)
-    const ancestry = branchPath(iterations, parent)
-    const history = ancestry.flatMap((iteration) => {
-      const turns: Array<{ role: 'user' | 'assistant'; content: string }> = [
-        { role: 'user', content: iteration.prompt },
-      ]
-      if (iteration.suggestion) {
-        turns.push({ role: 'assistant', content: iteration.suggestion })
-      }
-      return turns
-    }).slice(-20)
-    const previousLayout = parent ? studioResponseMeta(parent.response).layout : undefined
+    const selectedConversationId = selectedIteration?.conversationId ?? null
+    const parent = latestCompletedIteration(iterations, selectedConversationId)
     const iterationId = ++iterationCounter.current
     const pending: StudioIteration = {
       id: iterationId,
@@ -85,6 +66,7 @@ export default function Studio() {
       prompt: exactPrompt,
       status: 'generating',
       suggestion: null,
+      conversationId: parent?.conversationId ?? null,
       response: null,
     }
 
@@ -93,11 +75,35 @@ export default function Studio() {
     setIsGenerating(true)
     setError(null)
     try {
-      const generated = await generateStudioUI(apiUrl, exactPrompt, { history, previousLayout })
-      const suggestion = studioResponseMeta(generated).reason
+      let generated: unknown
+      try {
+        generated = await generateStudioUI(apiUrl, exactPrompt, parent?.conversationId)
+      } catch (requestError) {
+        if (!(requestError instanceof StudioApiError) || requestError.status !== 404 || !parent) {
+          throw requestError
+        }
+
+        setIterations((current) => current.map((iteration) => (
+          iteration.id === iterationId
+            ? { ...iteration, parentId: null, conversationId: null }
+            : iteration
+        )))
+        generated = await generateStudioUI(apiUrl, exactPrompt)
+      }
+
+      const responseMeta = studioResponseMeta(generated)
+      if (!responseMeta.conversationId) {
+        throw new Error('El API no devolvió conversationId.')
+      }
       setIterations((current) => current.map((iteration) => (
         iteration.id === iterationId
-          ? { ...iteration, status: 'completed' as IterationStatus, suggestion, response: generated }
+          ? {
+              ...iteration,
+              status: 'completed' as IterationStatus,
+              suggestion: responseMeta.reason,
+              conversationId: responseMeta.conversationId,
+              response: generated,
+            }
           : iteration
       )))
     } catch (requestError) {
