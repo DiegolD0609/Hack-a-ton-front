@@ -517,24 +517,6 @@ export default function Studio() {
             onSelect={selectIteration}
           />
 
-          {!activeProject.isDraft ? (
-            <ProjectFeedback
-              iteration={selectedIteration}
-              projectName={activeProject.name}
-              onCommentChange={(feedbackComment) => updateSelectedFeedback({
-                feedbackComment,
-                feedbackStatus: 'idle',
-                feedbackMessage: null,
-              })}
-              onScoreChange={(feedbackScore) => updateSelectedFeedback({
-                feedbackScore,
-                feedbackStatus: 'idle',
-                feedbackMessage: null,
-              })}
-              onSubmit={submitFeedback}
-            />
-          ) : null}
-
           {projectsError || activeProject.error ? (
             <div className="studio-error" role="alert">
               <strong>El API no pudo cargar el proyecto</strong>
@@ -550,14 +532,34 @@ export default function Studio() {
             iterationId={selectedIteration?.id ?? null}
           />
 
-          <section className="studio-suggestion-card" aria-labelledby="backend-suggestion-title">
-            <div className="studio-suggestion-mark"><StudioIcon name="spark" /></div>
-            <div>
-              <span className="studio-sidebar-label">Backend output</span>
-              <h2 id="backend-suggestion-title">Backend suggestion</h2>
-              <p>{selectedMeta.reason ?? 'The backend suggestion will appear here after an iteration.'}</p>
-            </div>
-          </section>
+          <div className={`studio-output-row ${!activeProject.isDraft && selectedIteration?.status === 'completed' ? 'has-feedback' : ''}`}>
+            <section className="studio-suggestion-card" aria-labelledby="backend-suggestion-title">
+              <div className="studio-suggestion-mark"><StudioIcon name="spark" /></div>
+              <div>
+                <span className="studio-sidebar-label">Backend output</span>
+                <h2 id="backend-suggestion-title">Backend suggestion</h2>
+                <p>{selectedMeta.reason ?? 'The backend suggestion will appear here after an iteration.'}</p>
+              </div>
+            </section>
+
+            {!activeProject.isDraft ? (
+              <ProjectFeedback
+                iteration={selectedIteration}
+                projectName={activeProject.name}
+                onCommentChange={(feedbackComment) => updateSelectedFeedback({
+                  feedbackComment,
+                  feedbackStatus: 'idle',
+                  feedbackMessage: null,
+                })}
+                onScoreChange={(feedbackScore) => updateSelectedFeedback({
+                  feedbackScore,
+                  feedbackStatus: 'idle',
+                  feedbackMessage: null,
+                })}
+                onSubmit={submitFeedback}
+              />
+            ) : null}
+          </div>
         </div>
       </main>
     </div>

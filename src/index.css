@@ -1387,6 +1387,22 @@
   padding: 0.8rem;
 }
 
+.studio-output-row {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.studio-output-row.has-feedback {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+}
+
+.studio-output-row .studio-feedback-card {
+  height: 100%;
+  margin: 0;
+}
+
 .studio-panel {
   min-width: 0;
   overflow: hidden;
@@ -2231,6 +2247,10 @@
 
   .studio-main-grid {
     padding: 0.55rem;
+  }
+
+  .studio-output-row.has-feedback {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
