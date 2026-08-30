@@ -1,5 +1,10 @@
 export type StudioRequest = (url: string, init: RequestInit) => Promise<Response>
 
+export interface StudioGenerateContext {
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>
+  previousLayout?: unknown
+}
+
 function apiEndpoint(apiUrl: string, path: string): string {
   const url = new URL(apiUrl, window.location.origin)
   url.pathname = `${url.pathname.replace(/\/$/, '')}${path}`
@@ -24,15 +29,24 @@ async function responseMessage(response: Response): Promise<string> {
 export async function generateStudioUI(
   apiUrl: string,
   prompt: string,
+  context: StudioGenerateContext = {},
   request: StudioRequest = fetch,
 ): Promise<unknown> {
   const exactPrompt = prompt.trim()
   if (!exactPrompt) throw new Error('El prompt no puede estar vacío.')
 
+  const body: Record<string, unknown> = {
+    prompt: exactPrompt,
+    history: context.history ?? [],
+  }
+  if (context.previousLayout !== undefined && context.previousLayout !== null) {
+    body.previousLayout = context.previousLayout
+  }
+
   const response = await request(apiEndpoint(apiUrl, '/studio/generate'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: exactPrompt }),
+    body: JSON.stringify(body),
   })
 
   if (!response.ok) throw new Error(await responseMessage(response))

@@ -742,61 +742,145 @@
   line-height: 1.45;
 }
 
-.studio-api-contract {
+.studio-iteration-card {
+  padding: 1.15rem;
+  border-bottom: 1px solid rgb(23 23 20 / 0.13);
+}
+
+.studio-iteration-card > header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  margin: 1.15rem;
-  border: 1px solid rgb(23 23 20 / 0.12);
-  border-radius: 1rem;
-  background: white;
-  padding: 0.9rem;
+  margin-bottom: 0.9rem;
 }
 
-.studio-api-contract p {
-  font-size: 0.72rem;
-  font-weight: 800;
+.studio-iteration-card h2 {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
 }
 
-.studio-api-contract div > span {
-  display: block;
-  margin-top: 0.3rem;
-  color: rgb(23 23 20 / 0.48);
-  font-size: 0.64rem;
-  line-height: 1.5;
-}
-
-.studio-api-sequence {
-  margin: 0 1.15rem 1.15rem;
-  overflow: hidden;
-  border: 1px solid rgb(23 23 20 / 0.1);
-  border-radius: 0.85rem;
-  background: rgb(255 255 255 / 0.42);
-}
-
-.studio-api-sequence div {
+.studio-tree-count {
   display: grid;
-  grid-template-columns: 2rem 1fr;
-  gap: 0.55rem;
-  padding: 0.65rem 0.75rem;
-  border-top: 1px solid rgb(23 23 20 / 0.08);
-}
-
-.studio-api-sequence div:first-child {
-  border-top: 0;
-}
-
-.studio-api-sequence dt {
-  color: rgb(23 23 20 / 0.32);
+  min-width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--studio-ink);
+  color: var(--studio-acid);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.55rem;
-  font-weight: 800;
+  font-size: 0.62rem;
+  font-weight: 850;
 }
 
-.studio-api-sequence dd {
-  font-size: 0.67rem;
-  font-weight: 700;
+.studio-tree-scroll {
+  max-height: 360px;
+  overflow: auto;
+  padding: 0.15rem 0.15rem 0.4rem;
+  scrollbar-width: thin;
 }
+
+.studio-tree-scroll ul {
+  position: relative;
+  margin-left: 0.78rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgb(23 23 20 / 0.2);
+}
+
+.studio-tree-scroll li {
+  position: relative;
+  padding-top: 0.58rem;
+}
+
+.studio-tree-scroll li::before {
+  position: absolute;
+  top: 1.65rem;
+  left: -1rem;
+  width: 0.85rem;
+  height: 1px;
+  background: rgb(23 23 20 / 0.2);
+  content: '';
+}
+
+.studio-tree-root,
+.studio-tree-node {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.62rem;
+  border: 1px solid rgb(23 23 20 / 0.12);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.58);
+  padding: 0.68rem;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.studio-tree-root:hover,
+.studio-tree-node:hover,
+.studio-tree-root.is-selected,
+.studio-tree-node.is-selected {
+  border-color: rgb(23 23 20 / 0.55);
+  background: white;
+  transform: translateX(2px);
+}
+
+.studio-tree-node.is-selected {
+  box-shadow: inset 3px 0 var(--studio-violet);
+}
+
+.studio-tree-root-dot,
+.studio-tree-status {
+  width: 0.56rem;
+  height: 0.56rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #b9b7ae;
+}
+
+.studio-tree-root > span:last-child,
+.studio-tree-node-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.18rem;
+}
+
+.studio-tree-root strong,
+.studio-tree-node strong {
+  overflow: hidden;
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-tree-root small,
+.studio-tree-node small {
+  overflow: hidden;
+  color: rgb(23 23 20 / 0.45);
+  font-size: 0.58rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-tree-node-index {
+  color: rgb(23 23 20 / 0.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+.studio-tree-node.is-generating .studio-tree-status {
+  background: var(--studio-violet);
+  animation: studio-pulse 1.3s infinite;
+}
+
+.studio-tree-node.is-completed .studio-tree-status { background: #68b539; }
+.studio-tree-node.is-error .studio-tree-status { background: #d05a43; }
 
 .studio-feedback-card {
   margin: 1.15rem;
@@ -911,7 +995,7 @@
 .studio-main-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(610px, auto);
+  grid-template-rows: minmax(610px, auto) auto;
   gap: 0.8rem;
   min-width: 0;
   padding: 0.8rem;
@@ -1347,6 +1431,62 @@
 .studio-empty-canvas {
   min-height: 500px;
   background: white;
+}
+
+.studio-copy-json {
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.58rem;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  transition: 160ms ease;
+}
+
+.studio-copy-json:hover {
+  border-color: var(--studio-acid);
+  color: var(--studio-acid);
+}
+
+.studio-suggestion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  border: 1px solid rgb(23 23 20 / 0.14);
+  border-radius: 1.1rem;
+  background: var(--studio-ink);
+  padding: 1rem;
+  color: white;
+  box-shadow: 0 18px 35px -28px rgb(23 23 20 / 0.75);
+}
+
+.studio-suggestion-mark {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.78rem;
+  background: var(--studio-acid);
+  color: var(--studio-ink);
+}
+
+.studio-suggestion-card .studio-sidebar-label {
+  color: var(--studio-acid);
+}
+
+.studio-suggestion-card h2 {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.studio-suggestion-card p {
+  margin-top: 0.35rem;
+  color: rgb(255 255 255 / 0.68);
+  font-size: 0.72rem;
+  line-height: 1.55;
 }
 
 .studio-building-pill {

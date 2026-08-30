@@ -13,16 +13,32 @@ const widthClasses: Record<CanvasWidth, string> = {
 interface StudioCanvasProps {
   response: unknown
   isBuilding: boolean
+  iterationId: number | null
 }
 
 export default function StudioCanvas({
   response,
   isBuilding,
+  iterationId,
 }: StudioCanvasProps) {
   const [canvasWidth, setCanvasWidth] = useState<CanvasWidth>('desktop')
   const [showStructure, setShowStructure] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const responseMeta = studioResponseMeta(response)
   const hasResponse = response !== null
+
+  const copyJSON = async () => {
+    if (!responseMeta.layout || !navigator.clipboard) {
+      setCopyStatus('failed')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(responseMeta.layout, null, 2))
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('failed')
+    }
+  }
 
   return (
     <section className="studio-panel studio-canvas-panel" aria-labelledby="canvas-title">
@@ -31,9 +47,7 @@ export default function StudioCanvas({
           <span className="studio-index">01</span>
           <div className="min-w-0">
             <h2 id="canvas-title" className="studio-panel-title">Playground</h2>
-            <p className="studio-panel-subtitle">
-              {hasResponse ? 'Layout recibido de POST /studio/generate' : 'Vacío hasta recibir la respuesta del API'}
-            </p>
+            <p className="studio-panel-subtitle">CREATE SAMPLE UI</p>
           </div>
         </div>
 
@@ -57,7 +71,10 @@ export default function StudioCanvas({
             className={`studio-icon-button ${showStructure ? 'is-active' : ''}`}
             aria-label="Ver estructura"
             aria-pressed={showStructure}
-            onClick={() => setShowStructure((value) => !value)}
+            onClick={() => {
+              setShowStructure((value) => !value)
+              setCopyStatus('idle')
+            }}
           >
             <StudioIcon name="braces" />
           </button>
@@ -83,7 +100,7 @@ export default function StudioCanvas({
 
           <div className="studio-browser-body">
             {hasResponse ? (
-              <div key={responseMeta.generatedBy ?? 'api'} className="studio-runtime-view runtime-payload">
+              <div key={`${iterationId ?? 'root'}-${responseMeta.generatedBy ?? 'api'}`} className="studio-runtime-view runtime-payload">
                 <StudioRenderer response={response} />
               </div>
             ) : (
@@ -99,13 +116,22 @@ export default function StudioCanvas({
 
             {showStructure && hasResponse ? (
               <div className="studio-structure-overlay">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                   <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/55">
                     Estructura generada
                   </span>
-                  <span className="rounded-full bg-[#dbff45] px-2 py-1 font-mono text-[10px] font-bold text-black">
-                    {responseMeta.generatedBy ?? 'api'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#dbff45] px-2 py-1 font-mono text-[10px] font-bold text-black">
+                      {responseMeta.generatedBy ?? 'api'}
+                    </span>
+                    <button
+                      type="button"
+                      className="studio-copy-json"
+                      onClick={() => void copyJSON()}
+                    >
+                      {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy JSON'}
+                    </button>
+                  </div>
                 </div>
                 <pre>{JSON.stringify(responseMeta.layout, null, 2)}</pre>
               </div>

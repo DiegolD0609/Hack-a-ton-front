@@ -68,19 +68,9 @@ function renderChildren(node: LooseObject): ReactNode {
   ))
 }
 
-function StudioPage({ node, props }: { node: LooseObject; props: LooseObject }) {
-  const title = stringValue(props.title)
-  const subtitle = stringValue(props.subtitle)
-  const eyebrow = stringValue(props.eyebrow)
+function StudioPage({ node }: { node: LooseObject }) {
   return (
     <main className="generated-page">
-      {title || subtitle || eyebrow ? (
-        <header className="generated-page-header">
-          {eyebrow ? <p className="generated-eyebrow">{eyebrow}</p> : null}
-          {title ? <h1>{title}</h1> : null}
-          {subtitle ? <p>{subtitle}</p> : null}
-        </header>
-      ) : null}
       <div className="generated-page-content">{renderChildren(node)}</div>
     </main>
   )
@@ -246,7 +236,7 @@ function StudioNode({ node }: { node: unknown }) {
   const props = objectValue(record.props) ?? {}
 
   switch (stringValue(record.type)) {
-    case 'page': return <StudioPage node={record} props={props} />
+    case 'page': return <StudioPage node={record} />
     case 'section': return <StudioSection node={record} props={props} />
     case 'button': return <StudioButton props={props} />
     case 'text': return <StudioText props={props} />
@@ -263,6 +253,7 @@ function StudioNode({ node }: { node: unknown }) {
 
 export function studioResponseMeta(response: unknown): {
   generatedBy: string | null
+  reason: string | null
   layout: unknown
   rootBlocks: number
 } {
@@ -270,6 +261,7 @@ export function studioResponseMeta(response: unknown): {
   const layout = objectValue(payload?.layout)
   return {
     generatedBy: stringValue(payload?.generatedBy),
+    reason: stringValue(payload?.reason),
     layout: payload?.layout,
     rootBlocks: layout ? nodeChildren(layout).length : 0,
   }
