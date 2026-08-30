@@ -530,6 +530,214 @@
       "title": "KeyValueProps",
       "type": "object"
     },
+    "MapMarker": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "lat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "title": "MapMarker",
+      "type": "object"
+    },
+    "MapNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 131,
+          "minLength": 4,
+          "pattern": "^ui_[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "props": {
+          "$ref": "#/$defs/MapProps"
+        },
+        "type": {
+          "const": "map",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "title": "MapNode",
+      "type": "object"
+    },
+    "MapProps": {
+      "additionalProperties": false,
+      "description": "Addendum v1.1 (node #10): a generic geographic route, domain-neutral.\n\nWaypoints/segments/marker carry no domain naming on purpose: the composer\nemits this node from the shape of step data (coordinates present), never\nfrom step names.",
+      "properties": {
+        "emphasis": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "warning",
+            "critical"
+          ],
+          "title": "Emphasis",
+          "type": "string"
+        },
+        "marker": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MapMarker"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/MapSegment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "waypoints": {
+          "items": {
+            "$ref": "#/$defs/MapWaypoint"
+          },
+          "minItems": 2,
+          "title": "Waypoints",
+          "type": "array"
+        }
+      },
+      "required": [
+        "waypoints",
+        "segments"
+      ],
+      "title": "MapProps",
+      "type": "object"
+    },
+    "MapSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "fromId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Fromid",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "active",
+            "diverted"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "toId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Toid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fromId",
+        "toId",
+        "status"
+      ],
+      "title": "MapSegment",
+      "type": "object"
+    },
+    "MapWaypoint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "origin",
+            "stop",
+            "destination"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "lat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "lat",
+        "lon",
+        "kind"
+      ],
+      "title": "MapWaypoint",
+      "type": "object"
+    },
     "MetricNode": {
       "additionalProperties": false,
       "properties": {
@@ -639,6 +847,7 @@
                 "compare": "#/$defs/CompareNode",
                 "decisionPanel": "#/$defs/DecisionPanelNode",
                 "keyValue": "#/$defs/KeyValueNode",
+                "map": "#/$defs/MapNode",
                 "metric": "#/$defs/MetricNode",
                 "page": "#/$defs/PageNode",
                 "section": "#/$defs/SectionNode",
@@ -674,6 +883,9 @@
               },
               {
                 "$ref": "#/$defs/StepNode"
+              },
+              {
+                "$ref": "#/$defs/MapNode"
               }
             ]
           },
@@ -759,6 +971,7 @@
                 "compare": "#/$defs/CompareNode",
                 "decisionPanel": "#/$defs/DecisionPanelNode",
                 "keyValue": "#/$defs/KeyValueNode",
+                "map": "#/$defs/MapNode",
                 "metric": "#/$defs/MetricNode",
                 "page": "#/$defs/PageNode",
                 "section": "#/$defs/SectionNode",
@@ -794,6 +1007,9 @@
               },
               {
                 "$ref": "#/$defs/StepNode"
+              },
+              {
+                "$ref": "#/$defs/MapNode"
               }
             ]
           },

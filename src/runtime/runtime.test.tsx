@@ -175,6 +175,101 @@ function llmUpgradeEnvelope(): UIUpdatedEnvelope {
   }
 }
 
+function structuralLayoutFixtures(): { normal: UISpec; anomaly: UISpec } {
+  const baseline = uiUpdatedEnvelope().payload.uiSpec
+  const normal: UISpec = {
+    ...baseline,
+    allowedActions: [],
+    reason: 'A stable run uses a summary-first layout with activity context.',
+    layout: {
+      ...baseline.layout,
+      children: [
+        {
+          id: 'ui_summary_section',
+          type: 'section',
+          props: { title: 'Run summary', columns: 2, emphasis: 'normal' },
+          children: [
+            {
+              id: 'ui_run_status',
+              type: 'metric',
+              props: { label: 'Run status', value: 'Running', emphasis: 'normal' },
+            },
+          ],
+        },
+        {
+          id: 'ui_execution',
+          type: 'section',
+          props: { title: 'Activity', columns: 1, emphasis: 'normal' },
+          children: [
+            {
+              id: 'ui_timeline',
+              type: 'timeline',
+              props: {
+                title: 'Activity',
+                items: [{ id: 'step_review_route', title: 'Review route', status: 'active' }],
+              },
+            },
+          ],
+        },
+        {
+          id: 'ui_context',
+          type: 'keyValue',
+          props: {
+            title: 'Context',
+            columns: 2,
+            items: [{ key: 'progress', label: 'Progress', value: 50, emphasis: 'normal' }],
+          },
+        },
+      ],
+    },
+  }
+  const anomaly: UISpec = {
+    ...normal,
+    reason: 'An anomaly-level result changes the layout to foreground the alert.',
+    layout: {
+      ...normal.layout,
+      children: [
+        {
+          id: 'ui_attention',
+          type: 'alert',
+          props: {
+            title: 'Attention required',
+            message: 'The current run contains an attention-level result.',
+            emphasis: 'warning',
+          },
+        },
+        {
+          id: 'ui_execution',
+          type: 'section',
+          props: { title: 'Current activity', columns: 1, emphasis: 'warning' },
+          children: [
+            {
+              id: 'ui_current_step',
+              type: 'step',
+              props: {
+                stepId: 'step_review_route',
+                title: 'Review route',
+                status: 'attention',
+                verdict: 'attention',
+                emphasis: 'warning',
+              },
+            },
+            {
+              id: 'ui_timeline',
+              type: 'timeline',
+              props: {
+                title: 'Activity',
+                items: [{ id: 'step_review_route', title: 'Review route', status: 'attention' }],
+              },
+            },
+          ],
+        },
+      ],
+    },
+  }
+  return { normal, anomaly }
+}
+
 class FakeSocket implements RuntimeSocket {
   readyState = 0
   onopen: ((event: Event) => void) | null = null
@@ -378,6 +473,32 @@ describe('runtime renderer', () => {
     expect(screen.getByText('LLM')).toBeInTheDocument()
     expect(screen.getByText(uiSpec.reason)).toBeInTheDocument()
     expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"generatedBy": "llm"')
+  })
+
+  it('shows normal and anomaly layouts as different trees in the inspector', async () => {
+    const user = userEvent.setup()
+    const { normal, anomaly } = structuralLayoutFixtures()
+    const normalSignature = normal.layout.children.map((node) => `${node.id}:${node.type}`)
+    const anomalySignature = anomaly.layout.children.map((node) => `${node.id}:${node.type}`)
+
+    expect(normalSignature).toEqual([
+      'ui_summary_section:section',
+      'ui_execution:section',
+      'ui_context:keyValue',
+    ])
+    expect(anomalySignature).toEqual(['ui_attention:alert', 'ui_execution:section'])
+    expect(anomalySignature).not.toEqual(normalSignature)
+
+    const normalInspector = render(<UISpecInspector uiSpec={normal} />)
+    await user.click(screen.getByRole('button', { name: 'Inspeccionar UISpec' }))
+    expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"ui_summary_section"')
+    expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"ui_context"')
+    normalInspector.unmount()
+
+    render(<UISpecInspector uiSpec={anomaly} />)
+    await user.click(screen.getByRole('button', { name: 'Inspeccionar UISpec' }))
+    expect(screen.getByTestId('ui-spec-json')).toHaveTextContent('"ui_attention"')
+    expect(screen.getByTestId('ui-spec-json')).not.toHaveTextContent('"ui_summary_section"')
   })
 
   it('isolates unknown and broken nodes without losing valid siblings', () => {

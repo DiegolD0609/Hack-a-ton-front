@@ -7,6 +7,7 @@ import {
   KeyValue,
   Metric,
   Page,
+  RouteMap,
   Section,
   Timeline,
   type DecisionActionRequest,
@@ -16,6 +17,7 @@ import type {
   CompareProps,
   DecisionPanelProps,
   KeyValueProps,
+  MapProps,
   MetricProps,
   PageProps,
   SectionProps,
@@ -80,6 +82,10 @@ export const componentRegistry: Readonly<Record<RegisteredComponentType, Registr
         onAction,
       })
     },
+  },
+  map: {
+    acceptsChildren: false,
+    render: ({ props }) => createElement(RouteMap, props as MapProps),
   },
   step: {
     acceptsChildren: false,

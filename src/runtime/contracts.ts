@@ -18,6 +18,7 @@ export const COMPONENT_TYPES = [
   'compare',
   'decisionPanel',
   'step',
+  'map',
 ] as const
 
 export const SERVER_MESSAGE_TYPES = [
@@ -222,6 +223,35 @@ export interface StepProps {
   emphasis: Emphasis
 }
 
+export interface MapWaypoint {
+  id: string
+  label: string
+  lat: number
+  lon: number
+  kind: 'origin' | 'stop' | 'destination'
+}
+
+export interface MapMarker {
+  label?: string | null
+  lat: number
+  lon: number
+}
+
+export interface MapSegment {
+  fromId: string
+  toId: string
+  status: 'planned' | 'active' | 'diverted'
+}
+
+/** Addendum v1.1 (node #10): generic geographic route, domain-neutral. */
+export interface MapProps {
+  title?: string | null
+  waypoints: MapWaypoint[]
+  segments: MapSegment[]
+  marker?: MapMarker | null
+  emphasis: Emphasis
+}
+
 export interface PageNode {
   id: UINodeId
   type: 'page'
@@ -278,6 +308,12 @@ export interface StepNode {
   props: StepProps
 }
 
+export interface MapNode {
+  id: UINodeId
+  type: 'map'
+  props: MapProps
+}
+
 export type UINode =
   | PageNode
   | SectionNode
@@ -288,6 +324,7 @@ export type UINode =
   | CompareNode
   | DecisionPanelNode
   | StepNode
+  | MapNode
 
 export interface UISpec {
   schemaVersion: SchemaVersion
@@ -390,3 +427,41 @@ export type ServerEnvelope =
   | ErrorEnvelope
 
 export type WebSocketEnvelope = ServerEnvelope | ActionSubmittedEnvelope
+
+/**
+ * Addendum v1.1 — assistant sidecar over HTTP (POST /runs/{runId}/assist),
+ * deliberately outside the frozen WebSocket envelope.
+ */
+export interface AssistMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistRequest {
+  schemaVersion: SchemaVersion
+  message: string
+  history: AssistMessage[]
+}
+
+/** Mirror of app/flow/models.py StepDefinition (runtime-editable step). */
+export interface StepDefinition {
+  id: string
+  type: string
+  title: string
+  objective: string
+  inputs: string[]
+  requiresHumanReview: boolean
+}
+
+export interface AssistRecommendedAction {
+  actionId: ActionId
+  rationale: string
+}
+
+export interface AssistResponse {
+  schemaVersion: SchemaVersion
+  runId: RunId
+  reply: string
+  recommendedActions: AssistRecommendedAction[]
+  proposedStep?: StepDefinition | null
+}

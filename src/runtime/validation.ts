@@ -14,6 +14,7 @@ export type RegisteredComponentType =
   | 'compare'
   | 'decisionPanel'
   | 'step'
+  | 'map'
 
 export type ValidationResult<T> =
   | { ok: true; value: T }
@@ -39,6 +40,7 @@ const propsDefinitionByType: Record<RegisteredComponentType, string> = {
   compare: 'CompareProps',
   decisionPanel: 'DecisionPanelProps',
   step: 'StepProps',
+  map: 'MapProps',
 }
 
 const componentPropsValidators = Object.fromEntries(
